@@ -742,3 +742,6 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
   (DISABLED: causes segfaults on Solaris): try to guess for -K PIC for ASFLAGS.
   New test 000_load-problem.t reports build parameters (for smoke testing;
 	taken from Numeric-Array).
+
+2.010804:
+  000_load-problem.t was busted...
