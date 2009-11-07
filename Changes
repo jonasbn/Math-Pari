@@ -763,3 +763,6 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
   "Just in case": change the leading component to "." in "diff_2.1.6_no-common".
   New argument to Makefile.PL: version23_ok=NUMBER (default 0).
   Add ftp-cmd to clean Makefile target.
+
+2.0304_001080601:
+  Change the default for $ok23 to 1.
