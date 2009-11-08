@@ -766,3 +766,13 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 
 2.0304_001080601:
   Change the default for $ok23 to 1.
+
+2.01080601+
+  Add 5.005-new keywords to Makefile.PL.
+  Consistently put space after -I in C include paths (needed???).
+  Nicer output when debugging faulty LWP and Net::FTP.
+  Make test engine look in */32/* directory too on 64-bit builds.
+  Remove POD ornaments to make ABSTRACT_FROM work.
+
+2.0304_0108060101
+  Change the default for $ok23 to 1.

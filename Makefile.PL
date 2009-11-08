@@ -164,11 +164,14 @@ my $extra_inc = extra_includes($paridir);
 # the contents of the Makefile being created.
 &WriteMakefile(
 	       LIBS	     =>  $libs,
-	       INC	     => $extra_inc . ' -I$(PARI_DIR)/src/headers -I$(PARI_DIR)/src -I./libPARI',
+	       INC	     => $extra_inc . ' -I $(PARI_DIR)/src/headers -I $(PARI_DIR)/src -I ./libPARI',
 	       NAME	     => 'Math::Pari',
 	       ($common::parilib ? () :
 		 (MYEXTLIB   =>  'libPARI/libPARI$(LIB_EXT)')),
 	       VERSION_FROM  => 'Pari.pm',
+    ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
+      (ABSTRACT_FROM  => 'Pari.pm', # retrieve abstract from module
+       AUTHOR         => 'Ilya Zakharevich <ilyaz@cpan.org>') : ()),
 	       DEFINE	     => $define,
 	       dist	     => {COMPRESS=>'gzip -9f', SUFFIX=>'gz'},
 	       clean	     => { FILES => 'pari.ps test_eng/ex.t- libPARI.dumb.pod libPARI.pod t/55_*.t ftp-cmd' },
