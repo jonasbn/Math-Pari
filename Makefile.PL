@@ -16,7 +16,7 @@ unless (-t STDOUT) {		# Better reports if run with redirections
     select $odef;
 }
 
-my $ok23 = 0;
+my $ok23 = 1;
 grep {/^machine=(.*)$/i		 and $common::machine = $1}  @ARGV;
 grep {/^configure$/i		 and $common::do_configure = 1}	     @ARGV;
 grep {/^paridir=(.*?)[\/\\]?$/i	 and $paridir = $1}	     @ARGV;

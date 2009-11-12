@@ -794,3 +794,7 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 2.01080602
   If AUTOMATED_TESTING, delete (bogus?) environment variable DISPLAY.
   If AUTOMATED_TESTING, report results of failing tests on STDERR.
+
+2.0304_001080602
+  Change the default for $ok23 to 1.
+
