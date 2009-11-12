@@ -222,7 +222,7 @@ EOP
 
 EOW
   warn(<<'EOW'), return unless $ENV{MATHPARI_USEFTP};
-FTP session is for debugging only; ignore download.
+FTP session is for debugging only; I'm ignoring the downloaded file.
   (Set $ENV{MATHPARI_USEFTP} to TRUE to actually use the downloaded file.)
 
 EOW

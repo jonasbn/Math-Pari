@@ -1,4 +1,5 @@
 #! perl -w
+delete $ENV{DISPLAY} if $ENV{AUTOMATED_TESTING};
 $file = __FILE__;
 $file =~ m|^(.*)[\\/]([^\\/.]*)\.t$|s or die;
 $dir = $1;
