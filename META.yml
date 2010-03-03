@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Math-Pari
-version:            2.0304_01080603
+version:            2.01080604
 abstract:           Perl interface to PARI.
 author:
     - Ilya Zakharevich <ilyaz@cpan.org>

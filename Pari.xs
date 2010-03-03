@@ -1,3 +1,8 @@
+#ifdef _WIN32 /* including windows.h later leads to macro name collisions */
+#  define WIN32_LEAN_AND_MEAN
+#  include <windows.h>
+#endif
+
 #  include <pari.h>
 #  include <graph/rect.h>
 #  include <language/anal.h>
@@ -29,6 +34,10 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif 
+
+#if PARI_VERSION_EXP < 2002012
+void init_defaults(int force);	/* Probably, will never be fixed in 2.1.* */
+#endif
 
 /* This should not be defined at this moment, but in 5.001n is. */
 #ifdef coeff
@@ -3795,7 +3804,7 @@ PPCODE:
 		SvREFCNT_dec(tmp);
 	    }
 	    if(GIMME_V == G_VOID) {
-		fputs(SvPV_nolen(ret),stdout);
+		PerlIO_puts(PerlIO_stdout(), SvPV_nolen(ret));
 		SvREFCNT_dec(ret);
 		XSRETURN(0);
 	    } else {

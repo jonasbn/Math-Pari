@@ -16,7 +16,7 @@ unless (-t STDOUT) {		# Better reports if run with redirections
     select $odef;
 }
 
-my $ok23 = 1;
+my $ok23 = 0;
 grep {/^machine=(.*)$/i		 and $common::machine = $1}  @ARGV;
 grep {/^configure$/i		 and $common::do_configure = 1}	     @ARGV;
 grep {/^paridir=(.*?)[\/\\]?$/i	 and $paridir = $1}	     @ARGV;
@@ -80,6 +80,13 @@ EOP
   ### `overflow' - if your build fails and error messages contain these
   ### words, updating to 2.3.* might allow your use of fast processor-specific
   ### assembler code.)
+
+  ### Switching to 2.3.* should be as simple as giving Makefile.PL an option
+  ###           version23_ok=1
+  ###   (if you or Makefile.PL already downloaded-and-extracted version-2.1.* 
+  ###    distribution, give an extra option, force_download).
+  ### Alternatively, give option
+  ###           paridir=DIRECTORY-of-extracted-distribution
 
   ### However, keep in mind: v.2.3.* supports only plotting to PostScript.
 

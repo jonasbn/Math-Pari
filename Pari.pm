@@ -205,7 +205,7 @@ print(), write() and variants is available via automatic string
 translation, and pari_print() function and its variants (see L<Printout functions>).
 
 default() is the only important function with functionality not
-supported by the current interface.  Note however, that three most
+supported by the current interface.  Note however, that four most
 important default() actions are supported by allocatemem(),
 setprimelimit(), setprecision() and setseriesprecision() functions.
 (When called without arguments, these functions return the current
@@ -926,7 +926,7 @@ sub _shiftr {
 $initmem ||= 4000000;		# How much memory for the stack
 $initprimes ||= 500000;		# Calculate primes up to this number
 
-$VERSION = '2.0304_01080603';
+$VERSION = '2.01080604';
 
 my $true = 1;
 # Propagate sv_true, sv_false to SvIOK:

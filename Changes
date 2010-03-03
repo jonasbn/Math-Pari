@@ -816,3 +816,14 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 2.0304_01080603
   Change the default for $ok23 to 1.
 
+2.01080604
+  Add (missing in 2.1.*) declaration for pari_init().
+  Minor miscount in docs.
+  Math::PariBuild: detecting `patch --binary' missed -p1; same for inc_h.diff
+  Work around bug in XSUB.h (at least up to 5.11.2) with puts.
+  Get GPDATADIR from gp, if present.
+  Make self-documentation for switching to 2.3.* more explicit.
+  kmx patch for mingw 32-bit Win-build:
+	include windows.h (early!) in Pari.xs and highlvl.c
+	enable assembler for this build
+  x86_64 assembler detection after 2.2.7; thanks to Alexander Haeckel

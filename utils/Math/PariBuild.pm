@@ -1,6 +1,6 @@
 package Math::PariBuild;
 
-$VERSION = '2.01080603';
+$VERSION = '2.01080604';
 
 require Exporter;
 @ISA = 'Exporter';
@@ -481,6 +481,7 @@ sub patches_for ($) {
 			      'patches/diff_2.1.6_no-common'],
 		 '2.1.7' =>  [
 			($^O =~ /darwin/i ? 'patches/diff_2.1.6_no-common' : ()),
+			($^O eq 'MSWin32' ? 'patches/diff_2.1.7_mingw-w64' : ()),
 			      'patches/patch-pari-unnormalized-float',
 			      'patches/diff_2.1.7_-O',
 			      'patches/diff_2.1.7_div',
@@ -507,7 +508,7 @@ sub patch_args ($) {
   return '/' unless $^O =~ /win32/i;
   my($patch, $p) = (shift, 'utils/inc_h.diff');
   $p =~ s,/,\\,g;
-  system "$patch --binary < $p"
+  system "$patch -p1 --binary < $p"
     or warn("... Apparently, your patch takes flag --binary...\n"),
        return ('\\', '--binary');
   return '\\';
@@ -733,12 +734,22 @@ sub write_paricfg {
 
 EOP
   my $shellq = ($^O eq 'os2' or $^O =~ /win32/i or $^O eq 'dos') ? q(") : q(');
+  my $datadir = '/usr/local/lib/pari/';
+  { local %ENV;
+    delete $ENV{GP_DATA_DIR};
+    (my $o = `$^X -wle "print shift" "print(default(datadir))" | gp -q` || '')
+       =~ s,/?\n*$,,;
+    $datadir = "$o/" if length $o and -d $o;
+  }
+  # with 2.1.7, it is either in one of $miscdir/galdata $share_prefix/pari/galdata
+  my $miscdir = $datadir;	# Not needed with 2.3.4
+  $datadir .= "galdata/" if $version < 2003000;
   print F <<EOP;
 #define SHELL_Q		'\\$shellq'
 EOP
   print F <<EOP;
-#define GPDATADIR "/usr/local/lib/pari/galdata"
-#define GPMISCDIR "/usr/local/lib/pari"
+#define GPDATADIR "$datadir"
+#define GPMISCDIR "$miscdir"
 
 #define PARI_BYTE_ORDER    $Config{byteorder}
 #define NOEXP2	/* Otherwise elliptic.t:11 rounds differetly, and fails */
@@ -887,6 +898,8 @@ sub find_machine_architecture () {
 	   or $os eq 'freebsd' or $os =~ /^cygwin/) {
     chomp($machine = `uname -m`);
     $machine ||= 'ix86';
+  } elsif (($Config{archname} eq 'MSWin32-x86-multi-thread') && ($Config{cc} =~ /gcc/)) {
+    $machine = 'ix86';
   } elsif (0 and $os =~ /win32/i and not $Config{gccversion}) {
     # Not needed with rename of kernel1.s to kernel1.c?
     $machine = 'port'; # Win32 compilers would not understand the assmebler anyway
@@ -1029,6 +1042,7 @@ sub inline_headers_arr {     # These files are cat()ed to pariinl.h
 	       # ppc is not done yet (2.0.15)
 	($pari_version > 2002007
 		? (ppc		     => ['ppc/asm0.h', 'none/divll.h'],
+                   x86_64            => ['x86_64/asm0.h','none/level1.h'],
 		   ia64		     => ['ia64/asm0.h','ia64/asm1.h'])
 		: ()),
 	       sparcv7	      => ['none/asm0.h','none/level1.h'],
@@ -1125,8 +1139,8 @@ sub choose_and_report_assembler {
 			       ? 'hppa' : 'none'),
 	     );
   my $asmarch = $asmarch{$machine} || $machine; # Temporary only
-  my %skip64 = (alpha => 1, none => 1, ia64 => 1);
-  if (not $skip64{$asmarch}
+  my %skip64 = (alpha => 1, none => 1);
+  if (not ( $skip64{$asmarch} or $asmarch =~ /\D64$/ )
       and ($Config{longsize} || 0) == 8) {
     $asmarch .= '_64';
     $asmarch = 'hppa64' if $asmarch eq 'hppa_64';
@@ -1601,7 +1615,7 @@ sub code_C_translator {
   my @t = ExtUtils::Constant::constant_types(); # macro defs
   my @tt =
     ExtUtils::Constant::C_constant(
-	  'Math::Pari::func_type', 
+	  'Math::Pari::func_type',
           'func_ord_by_type', undef, undef, undef, undef,
           map {{name => $_, value => $codes{$_}, macro => 1}} keys %codes);
 
