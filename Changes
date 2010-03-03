@@ -827,3 +827,6 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 	include windows.h (early!) in Pari.xs and highlvl.c
 	enable assembler for this build
   x86_64 assembler detection after 2.2.7; thanks to Alexander Haeckel
+
+2.0305_01080604
+  Change the default for $ok23 to 1.
