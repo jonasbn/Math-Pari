@@ -35,6 +35,12 @@ extern "C" {
 }
 #endif 
 
+#if !defined(na) && defined(PERL_VERSION) && (PERL_VERSION > 7)	/* Added in 6 (???), Removed in 13 */
+#  define na		PL_na
+#  define sv_no		PL_sv_no
+#  define sv_yes	PL_sv_yes
+#endif
+
 #if PARI_VERSION_EXP < 2002012
 void init_defaults(int force);	/* Probably, will never be fixed in 2.1.* */
 #endif

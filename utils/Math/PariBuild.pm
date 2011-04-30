@@ -487,6 +487,8 @@ sub patches_for ($) {
 			      'patches/diff_2.1.7_div',
 			      'patches/diff_2.1.6_align_power_of_2',
 			      'patches/diff_2.1.7_restart'],
+		 '2.3.5' =>  [
+			($^O eq 'MSWin32' ? 'patches/diff_2.3.5_mingw-w64' : ())], 
 		);
   print "Looking for patches for $v...\n";
   my @p = $patches{$v} ? @{$patches{$v}} : ();

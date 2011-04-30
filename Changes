@@ -830,3 +830,10 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 
 2.0305_01080604
   Change the default for $ok23 to 1.
+
+2.01080604
+ Similar (but slightly different) kmx patch to enable 2.3.5 build on mingw.
+
+2.01080605
+ p5p in its infinite wisdom removed (automatically generated) defines for PERL_POLLUTE...
+	Now every extension needs to add them back by hand...
