@@ -849,5 +849,19 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
     - might have been the reason for problems with _overflow and _hiremainder on other platforms too!
 
 2.01080606a
-  cygwin's tar generated 0-permissions for the distribution.
+  cygwin's tar generated 0-permissions for the distribution (no auto-workaround...).
   Document workarounds for isprime() with version 2.1.7 (in the BUGS section).
+
+2.01080607
+  Correct the documention about fraction of witnesses from >=0.25 to >=0.75.
+  Define HAS_STAT and HAS_OPENDIR basing on $Config{i_sysstat} and $Config{i_dirent}.
+  Correct spelling errors in POD and comments in Pari.pm (thanks to dsteinbrunner!).
+  On AIX, do merge_822 separately in subdirectories (exceeds command line length otherwise).
+  On >=2.3.0, reset had-newline-on-output to 1 at startup.  (Saves one spurious NL)
+  New patch: diff_2.3.5_stderr_clobber
+  New test: 01_no_extra_newlines.t
+  Allow download not only via FTP, but also through HTTP.
+  In presence of PERL5_CPAN_IS_RUNNING, assume that NO ANSWER on prompt is agreement.
+	(It looks like cygwin and MSWin32 automated-testing environment do not have
+	 AUTOMATED_TESTING and PERL_MM_USE_DEFAULT set...)
+  Do not auto-download on 64-bit builds of MSWin32.

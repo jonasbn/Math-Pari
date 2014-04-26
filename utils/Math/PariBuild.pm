@@ -262,6 +262,20 @@ sub download_pari {
   } else {
     if ($force) {
       print "Forced autofetching...\n\n"
+    } elsif ($^O =~ /^MSWin32\b/ and $Config{ptrsize} == 8 and $Config{longsize} == 4) {
+      print <<EOP;
+
+Apparently, you are running a 64-bit Perl built with MicroSoft's compilers.
+GP/PARI (at least the versions I know how to work with, 2.1.* and 2.3.*)
+cannot be built in this environment.  I won't auto-download GP/PARI.
+
+If you believe that this message is printed erroneously, please report
+(see files README and INSTALL), and put force_download on the command line:
+   perl Makefile.PL force_download
+
+EOP
+      print manual_download_instructions();
+      return;
     } elsif (not $ENV{AUTOMATED_TESTING} and not $ENV{PERL_MM_USE_DEFAULT}
 	     and -t STDIN and (-t STDOUT or -p STDOUT)) { # Interactive
       $| = 1;	# Usually, we run under MakeMaker, so test PERL_MM_USE_DEFAULT
@@ -281,36 +295,54 @@ EOP
       print "$mess ";
       my $ans = <STDIN>;
       if ($ans !~ /y/i) {
+        if ($ans !~ /[^\n\r]/ and $ENV{PERL5_CPAN_IS_RUNNING}) {
+          print <<'EOP';
+
+Hmm, did not you read the prompt?
+
+Anyway, since $ENV{PERL5_CPAN_IS_RUNNING} is set and TRUE, I assume
+automated testing, and consider NO ANSWER aas agreement...
+
+EOP
+          $ans = 'y';
+        } else {
+          print <<EOP;
+
+Well, as you wish...        I won't download it automatically...
+
+EOP
+	}
 	my ($eA, $eM, $tI, $tO, $tE, $pO, $pE)
 	  = (@ENV{ qw(AUTOMATED_TESTING PERL_MM_USE_DEFAULT) },
 	     -t STDIN, -t STDOUT, -t STDERR, -p STDERR, -p STDOUT);
 	defined() ? $_ = "'$_'" : $_ = '<undef>' for $eA, $eM;
         print <<EOP;	# Is AUTOMATED_TESTING ALWAYS defined on smoke???
 
-Well, as you wish...
-
   [ to debug Smoke Tests: AUTOMATED_TESTING=$eA PERL_MM_USE_DEFAULT=$eM
         -t STDIN/STDOUT/ERR = $tI/$tO/$tE		-p STDOUT/ERR = $pO/$pE ]
 
 EOP
-	print manual_download_instructions();
-        return;
+	unless ($ans eq 'y') {
+	  print manual_download_instructions();
+          return;
+	}
       }
     } else {
       print "Non-interactive session, autofetching...\n\n"
     }
 
     $base_url = "ftp://$host$dir";
-    my @extra_chdir = qw(OLD/2.3 ../2.1 ..);
+    my @extra_chdir = qw(OLD/2.3 OLD/2.1 OLD);
     print "Getting GP/PARI from $base_url\n";
 
     eval {
+      die "This is not an FTP url: $base_url" unless $base_url =~ m(^ftp://);
       require Net::FTP;
 
       $ftp = Net::FTP->new($host) or die "Cannot create FTP object: $!";
       $ftp->login("anonymous","Math::Pari@")
         or die "Cannot login anonymously (",$ftp->message(),"): $!";
-      my $c = 0;
+      my($c, $sub_old) = 0;
       my @Extra = @extra_chdir;
       while (not $c) {
 	$ftp->cwd($dir) or die "Cannot cwd (",$ftp->message(),"): $!";
@@ -323,10 +355,12 @@ EOP
 	for my $file (@lst) {
 	  $c++ if $match_pari_archive->($file);
 	}
+	$sub_old++ if $dir =~ m(OLD/);
 	unless ($c) {
 	  die "Did not find any file matching /$match/ via FTP\n\n"
 	    . manual_download_instructions() unless @Extra;
 	  $dir = shift @Extra;
+	  $dir =~ s(OLD)(..) if $sub_old;
 	  print "Not in this directory, now chdir('$dir')...\n";
 	}
       }
@@ -337,15 +371,19 @@ EOP
       # second try with LWP::UserAgent
       eval { require LWP::UserAgent; require HTML::LinkExtor }
         or die "You do not have LWP::UserAgent and/or HTML::LinkExtor installed, cannot download, exiting...\n\n" . manual_download_instructions();
-      my $c = 0;
-      my @Extra = @extra_chdir;
+      my($c, $do) = 0;
+#      my @Extra = @extra_chdir;
+      my @url = map "$base_url$_", '', map "$_/", @extra_chdir;
+      push @url, map { (my $in = $_) =~ s(^ftp://)(http://); $in } @url;
       while (not $c) {
+        $base_url = shift @url;
+	print "Not in this directory, trying `$base_url'...\n" if $do++;
 	$ua = LWP::UserAgent->new;
 	$ua->env_proxy;
 	my $req = HTTP::Request->new(GET => $base_url);
 	my $resp = $ua->request($req);
 	$resp->is_success
-	  or die "Can't fetch directory listing from $base_url: " . $resp->as_string;
+	  or warn("Can't fetch directory listing from $base_url: " . $resp->as_string), next;
 	%archive = ();
 	if ($resp->content_type eq 'text/html') {
 	  my $p = HTML::LinkExtor->new;
@@ -361,15 +399,13 @@ EOP
 	  }
 	}
 	unless ($c) {
-	  unless (@Extra) {
+	  unless (@url) {
 	    warn debug_no_response($resp)
 	      . "Did not find any file matching /$match/ via FTP.\n\n";
 	    my $f = ll_ftp or die manual_download_instructions();
 	    return download_pari($f);
 	  }
-	  my $dir = shift @Extra;
-	  $base_url .= "$dir/";
-	  print "Not in this directory, trying `$base_url'...\n";
+#	  my $dir = shift @Extra;
 	}
       }
     }
@@ -488,7 +524,8 @@ sub patches_for ($) {
 			      'patches/diff_2.1.6_align_power_of_2',
 			      'patches/diff_2.1.7_restart'],
 		 '2.3.5' =>  [
-			($^O =~ /^MSWin32\b/ ? 'patches/diff_2.3.5_mingw-w64' : ())], 
+			($^O =~ /^MSWin32\b/ ? 'patches/diff_2.3.5_mingw-w64' : ()),
+			      'patches/diff_2.3.5_stderr_clobber'], 
 		);
   print "Looking for patches for $v...\n";
   my @p = $patches{$v} ? @{$patches{$v}} : ();
@@ -737,6 +774,7 @@ sub write_paricfg {
 EOP
   my $shellq = ($^O eq 'os2' or $^O =~ /win32/i or $^O eq 'dos') ? q(") : q(');
   my $datadir = '/usr/local/lib/pari/';
+  warn "Trying to find DATADIR of an installed version of GP/PARI (if such exists)...\n";
   { local %ENV;
     delete $ENV{GP_DATA_DIR};
     (my $o = `$^X -wle "print shift" "print(default(datadir))" | gp -q` || '')
@@ -1331,8 +1369,19 @@ sub build_funclists_ourselves ($) {
   unless (-f 'pari.desc') {
     my $t = 'tmp-pari.desc';
     #warn "Running `$^X merge_822 ../functions/*/* > $t'...\n";
-    system "$^X merge_822 ../functions/*/* > $t"
-      and die "Can't run `$^X merge_822 ../functions/*/* > $t'";
+    if (system "$^X merge_822 ../functions/*/* > $t") {		# On AIX, this exceeds max command line length
+      unlink ($t);
+      warn <<EOW;
+Can't run `$^X merge_822 ../functions/*/* > $t'
+Running merge_822 separately in subdirectories...
+EOW
+      foreach (glob ("../functions/*")) {
+         next unless (-d $_);
+         my @l = glob "$_/*" or next;
+         system "$^X merge_822 @l >> $t"
+           and die "Can't run `$^X merge_822 @l >> $t'";
+      }
+    }
     rename $t, 'pari.desc' or die "rename failed: $t => 'pari.desc'";
   }
 

@@ -148,6 +148,10 @@ if ($machine eq 'alpha') {
   $noexp2 = 1;
 }
 
+# Since Perl's Config has no direct checks for stat() and opendir(), use presence of OpenGroup's header files
+$mycflags .= ' -DHAS_STAT'	if $Config{i_sysstat};
+$mycflags .= ' -DHAS_OPENDIR'	if $Config{i_dirent};
+
 if ($Config{gccversion}
     and not $common::do_configure
     and not ($asmarch eq 'alpha'

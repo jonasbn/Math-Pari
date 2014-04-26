@@ -3768,6 +3768,9 @@ BOOT:
    PariStack = (SV *) GENfirstOnStack;
    workErrsv = newSVpv("",0);
    pariErr = &perlErr;
+#if PARI_VERSION_EXP >= 2003000
+   pari_set_last_newline(1);			/* Bug in PARI: at the start, we do not need extra newlines */
+#endif
    foreignHandler = (void*)&callPerlFunction;
    foreignAutoload = &autoloadPerlFunction;
    foreignExprSwitch = (char)SVt_PVCV;

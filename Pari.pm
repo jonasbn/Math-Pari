@@ -46,7 +46,7 @@ Is converted to a PARI float.
 
 =item One string
 
-Is executed as a PARI expresion (so should not contain whitespace).
+Is executed as a PARI expression (so should not contain whitespace).
 
 =item PARI object
 
@@ -71,7 +71,7 @@ the string rule is used.  So C<PARI(1)> returns integer, C<PARI(1.)>
 returns float, C<PARI("1")> evaluates C<1> as a PARI expression (well,
 the result is the same as C<PARI(1)>, only slower).
 
-Note that for Perl these data are synonimous, since Perl freely
+Note that for Perl these data are synonymous, since Perl freely
 converts between integers, float and strings.  However, to PARI() only
 what the argument I<is now> is important.  If $v is C<1> in the Perl
 world, C<PARI($v)> may convert it to an integer, float, or to the
@@ -95,7 +95,7 @@ The internal vectors become columns of the matrix.  PARImat_tr()
 behaves similarly, but the internal vectors become rows of the matrix.
 
 Since PARI matrices are similar to vector-rows of vector-columns,
-PARImat() is quickier, but PARImat_tr() better corresponds to the PARI
+PARImat() is quicker, but PARImat_tr() better corresponds to the PARI
 input and output forms of matrices:
 
   print PARImat    [[1,2], [3,4]];	# prints [1,3;2,4]
@@ -107,7 +107,7 @@ If arguments are specified in the C<use Math::Pari> directive, the
 PARI functions appearing as arguments are exported in the caller
 context. In this case the function PARI() and friends is not exported,
 so if you need them, you should include them into export list
-explicitely, or include C<:DEFAULT> tag:
+explicitly, or include C<:DEFAULT> tag:
 
   use Math::Pari qw(factorint PARI);
   use Math::Pari qw(:DEFAULT factorint);
@@ -382,7 +382,7 @@ able to use this variable from your PARI code; e.g.,
   $j = 7.8;
   fordiv(28, $j, 'a=a+j+j^2');
 
-will not make C<j> mirror $j (unless you explicitely set up C<j> to be
+will not make C<j> mirror $j (unless you explicitly set up C<j> to be
 a no-argument PARI function mirroring $j, see L<"Accessing Perl functions from PARI code">).
 
 B<Caveats>.  There are 2 flavors of the "code" arguments
@@ -462,9 +462,9 @@ Note also that no direct import of Perl variables is available yet
 
   sub getv () {$v}
 
-There is an unsupported (and undocumented ;-) function for explicitely
+There is an unsupported (and undocumented ;-) function for explicitly
 importing Perl functions into PARI, possibly with a different name,
-and possibly with explicitely specifying number of arguments.
+and possibly with explicitly specifying number of arguments.
 
 =head1 PARI objects
 
@@ -797,7 +797,7 @@ since in PARI the data is not refcounted.
 Legacy implementations of dynalinking require the code of DLL to be
 compiled to be "position independent" code (PIC).  This slows down the
 execution, while allowing sharing the loaded copy of the DLL between
-different processes.  [On contemeporary architectures the same effect
+different processes.  [On contemporary architectures the same effect
 is allowed without the position-independent hack.]
 
 Currently, PARI assembler files are not position-independent.  When
@@ -820,24 +820,36 @@ Summary: if the dynaloading on your system requires some kind of C<-fPIC> flag, 
 In older versions of PARI, the one-argument variant of the function isprime()
 is actually checking for probable primes.  Moreover, it has certain problems.
 
-B<POSSIBLE WORKAROUND:> before version 2.3 of PARI, to get probability of
+B<POSSIBLE WORKAROUND (not needed for newer PARI):> before version 2.3 of PARI, to get probability of
 misdetecting a prime below 1e-12, call isprime() twice; below 1e-18, call
-it 3 times; etc.
+it 3 times; etc.  (The algorithm is probabilistic, and the implementation is
+such that the result depends on which calls to isprime() were performed ealier.)
 
-The problems: first, the default algorithm (before version 2.3) is looking for so-called
+The problems: first, while the default algorithm (before version 2.3) gives practically
+acceptable results in non-adversarial situations, the worst-case behaviour is
+significantly worse than the average behaviour.  The algorithm is looking for so-called
 "witnesses" (with up to 10 tries) among random integers; usually, witnesses are abundant.  However,
 there are non-prime numbers for which the fraction of witnesses is close to the theoretical
-miminum, 0.25; during 10 calls, the probability
-of missing a witness for such numbers is close to 1e-6.
+mininum, 0.75; with 10 random tries, the probability
+of missing a witness for such numbers is close to 1e-6.  (The known worst-case numbers M
+have phi(M)/4 non-witnesses, with M=P(2P-1), prime P, 2P-1 and 4|P+1; the proportion of such
+numbers near K is expected to be const/sqrt(K)log(K)^2.  Note that numbers which have more than
+about 5% non-witnesses may also be candidates for false positives.  Conjecturally, they
+are of the form (aD+1)(bD+1) with a<b, ab <= const, prime aD+1, and bD+1, and D not divisible
+by high power of 2 (above a=1, b=2 and D is odd); the proportion of such numbers may have
+a similar asymptotic const/sqrt(K)log(K)^2.)
 
-Second, the random number generator is reset when PARI library
-is initialized.  That means that one can find non-primes which will
-trigger a false positive on the Nth call to isprime() (for particular values
-of N).  With enough computing resources, one can find non-primes for which N is
-relatively small (there are relatively small examples with N about 1000).
-Compare with similar examples for simpler algorith,
-L<Carmichael numbers|http://primes.utm.edu/glossary/xpage/CarmichaelNumber.html>;
-see also L<numbers with few witnesses|http://oeis.org/A141768>.
+Second, the random number generator is "reset to known state" when PARI library
+is initialized.  That means that the behaviour is actually predictable if one knows
+which calls to isprime() are performed; an adversary can find non-primes M which will
+trigger a false positive exactly on the Nth call to isprime(M) (for particular values
+of N).  With enough computing resources, one can find non-primes M for which N is
+relatively small (with M about 1e9, one can achieve N as low as 1000).
+Compare with similar (but less abundant) examples for simpler algorithm,
+L<Carmichael numbers|http://en.wikipedia.org/wiki/Carmichael_numbers>;
+see also L<numbers with big proportion of non-witnesses|http://oeis.org/A090659> and L<numbers
+with many non-witnesses|http://oeis.org/A141768>, and L<the conjecture about
+proportion|http://web.archive.org/web/*/http://www.ma.iup.edu/MAA/proceedings/vol1/higgins.pdf>.
 
 See L<the discussion of isprime()|https://rt.cpan.org/Public/Bug/Display.html?id=93652>.
 
@@ -952,7 +964,7 @@ sub _shiftr {
 $initmem ||= 4000000;		# How much memory for the stack
 $initprimes ||= 500000;		# Calculate primes up to this number
 
-$VERSION = '2.01080606';
+$VERSION = '2.01080607';
 
 my $true = 1;
 # Propagate sv_true, sv_false to SvIOK:
@@ -1021,7 +1033,7 @@ sub AUTOLOAD {
 #  &$AUTOLOAD;
 }
 
-# Needed this guy to circumwent autoloading while no XS definition
+# Needed this guy to circumvent autoloading while no XS definition
 
 #### sub DESTROY {}
 
