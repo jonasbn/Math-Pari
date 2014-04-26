@@ -865,3 +865,6 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 	(It looks like cygwin and MSWin32 automated-testing environment do not have
 	 AUTOMATED_TESTING and PERL_MM_USE_DEFAULT set...)
   Do not auto-download on 64-bit builds of MSWin32.
+
+2.0305_01080607
+  Change the default for $ok23 to 1.
