@@ -229,6 +229,76 @@ EOW
   return 'pari-2.1.7.tgz';
 }
 
+sub finish_download_pari ($$$$;$) {
+  my($base_url, $dir, $_archive, $ftp, $ua) = (shift, shift, shift, shift, shift);
+  my %archive = %$_archive;
+  my ($type, %have, %types, $best, %latest_version, %latest_file);
+  
+  sub fmt_version {sprintf "%03d%03d%03d", split /\./, shift}
+
+  for $type (qw(alpha beta golden)) {
+    if ($archive{$type}) {
+      $have{$type}++;
+      $best = $type;
+      my @files = keys %{$archive{$type}};
+      print "Available $type versions: `@files'\n";
+      $latest_version{$type} = (sort {fmt_version($a) cmp fmt_version($b)}
+				keys %{$archive{$type}})[-1];
+      $latest_file{$type} = $archive{$type}{$latest_version{$type}};
+      print qq(Latest supported $type is `$latest_file{$type}'\n);
+    }
+  }
+
+  # Special-case v2.0.14
+  if (!$archive{golden} and $latest_version{beta} eq '2.0.11'
+      and $latest_version{alpha} eq '2.0.14') {
+    $best = 'alpha';		# It is tested!
+  }
+
+  undef $dir;
+  my $version;
+  if ($best) {
+    my $file = $latest_file{$best};
+    $version = $latest_version{$best};
+    print qq(Picking $best version $version, file $file\n);
+    if (-f $file) {
+      print qq(Well, I already have it, using the disk copy...\n);
+    } else {
+      print qq(Downloading `$base_url$file'...\n);
+      if ($ftp) {
+        $ftp->get($file) or die "Cannot get via FTP (",$ftp->message(),"): $!";
+	$ftp->quit or warn "Warning: cannot quit FTP: ", $ftp->message();
+      } else {
+	my $req = HTTP::Request->new(GET => "$base_url$file");
+	my $resp = $ua->request($req);
+	$resp->is_success
+	  or die "Can't fetch $base_url/$file: " . $resp->as_string;
+	my $base = basename($file);
+	open(F, ">$base") or die "Can't write to $base: $!";
+	binmode F or die "Can't binmode(): $!";
+	print F $resp->content;
+	close F;
+      }
+      print qq(Downloaded...\n);
+    }
+    print qq(Extracting...\n);
+    my $zcat = "gzip -dc";	# zcat may be the old .Z-extractor
+    print  "$zcat $file | tar -xvf -\n";
+    system "$zcat $file | tar -xvf -"
+      and do {
+	  print "Can't un-targz PARI: \$!=$!, exitcode=$?.\n";
+	  my @cmd = ($^X, qw(-MArchive::Tar -wle),
+		     'Archive::Tar->new(shift)->extract()', $file);
+	  print '  Now retry with "', join('" "', @cmd), "\"\n";
+	  system @cmd and die "Can't un-targz PARI: \$!=$!, exitcode=$?.\n"
+        };
+    ($dir = $file) =~ s,(?:.*[\\/])?(.*)\.t(ar\.)?gz$,$1,
+      or die "malformed name `$file'";
+    -d $dir or die "Did not find directory $dir!";
+  }
+  return ($dir, $version);
+}
+
 sub download_pari {
   my ($srcfile, $force) = (shift, shift);
   my $host = 'megrez.math.u-bordeaux.fr';
@@ -295,13 +365,17 @@ EOP
       print "$mess ";
       my $ans = <STDIN>;
       if ($ans !~ /y/i) {
-        if ($ans !~ /[^\n\r]/ and $ENV{PERL5_CPAN_IS_RUNNING}) {
+        if ($ans !~ /[^\n\r]/ and not $ENV{PERL_MATHPARI_TRUST_MANUAL}
+	    and (defined $ENV{PERL5_CPAN_IS_RUNNING} 
+        	 or ($ENV{PERL_EXTUTILS_AUTOINSTALL}||0) =~ /\bdefaultdeps\b/) ) {
           print <<'EOP';
 
 Hmm, did not you read the prompt?
 
-Anyway, since $ENV{PERL5_CPAN_IS_RUNNING} is set and TRUE, I assume
-automated testing, and consider NO ANSWER aas agreement...
+Anyway, since $ENV{PERL5_CPAN_IS_RUNNING} is set 
+  (or $ENV{PERL_EXTUTILS_AUTOINSTALL} contains defaultdeps),
+I assume unattended build, and consider NO ANSWER as agreement...
+     (If this is not what you wanted, set PERL_MATHPARI_TRUST_MANUAL to TRUE.)
 
 EOP
           $ans = 'y';
@@ -312,13 +386,15 @@ Well, as you wish...        I won't download it automatically...
 
 EOP
 	}
-	my ($eA, $eM, $tI, $tO, $tE, $pO, $pE)
-	  = (@ENV{ qw(AUTOMATED_TESTING PERL_MM_USE_DEFAULT) },
+	my ($eA, $eM, $eC, $eE, $tI, $tO, $tE, $pO, $pE)
+	  = (@ENV{ qw(AUTOMATED_TESTING PERL_MM_USE_DEFAULT PERL5_CPAN_IS_RUNNING PERL_EXTUTILS_AUTOINSTALL) },
 	     -t STDIN, -t STDOUT, -t STDERR, -p STDERR, -p STDOUT);
-	defined() ? $_ = "'$_'" : $_ = '<undef>' for $eA, $eM;
+	defined() ? $_ = "'$_'" : $_ = '<undef>' for $eA, $eM, $eC, $eE;
+	my @ans = map {sprintf '%#x', ord} split //, $ans;
         print <<EOP;	# Is AUTOMATED_TESTING ALWAYS defined on smoke???
 
   [ to debug Smoke Tests: AUTOMATED_TESTING=$eA PERL_MM_USE_DEFAULT=$eM
+        ans=@ans	PERL5_CPAN_IS_RUNNING=$eC PERL_EXTUTILS_AUTOINSTALL=$eE
         -t STDIN/STDOUT/ERR = $tI/$tO/$tE		-p STDOUT/ERR = $pO/$pE ]
 
 EOP
@@ -335,7 +411,7 @@ EOP
     my @extra_chdir = qw(OLD/2.3 OLD/2.1 OLD);
     print "Getting GP/PARI from $base_url\n";
 
-    eval {
+    my @ret = eval {
       die "This is not an FTP url: $base_url" unless $base_url =~ m(^ftp://);
       require Net::FTP;
 
@@ -364,9 +440,11 @@ EOP
 	  print "Not in this directory, now chdir('$dir')...\n";
 	}
       }
+      return finish_download_pari($base_url, $dir, \%archive, $ftp)
     };
-    if ($@) {
-      undef $ftp;
+    return @ret if @ret;
+    die "Panic: unreachable" unless $@;
+    {
       warn "$@\nCan't fetch file with Net::FTP, now trying with LWP::UserAgent...\n";
       # second try with LWP::UserAgent
       eval { require LWP::UserAgent; require HTML::LinkExtor }
@@ -401,7 +479,7 @@ EOP
 	unless ($c) {
 	  unless (@url) {
 	    warn debug_no_response($resp)
-	      . "Did not find any file matching /$match/ via FTP.\n\n";
+	      . "Did not find any file matching /$match/ via FTP/HTTP.\n\n";
 	    my $f = ll_ftp or die manual_download_instructions();
 	    return download_pari($f);
 	  }
@@ -409,72 +487,8 @@ EOP
 	}
       }
     }
+    return finish_download_pari($base_url, $dir, \%archive, undef, $ua)
   }
-
-  sub fmt_version {sprintf "%03d%03d%03d", split /\./, shift}
-
-  my ($type, %have, %types, $best, %latest_version, %latest_file);
-  for $type (qw(alpha beta golden)) {
-    if ($archive{$type}) {
-      $have{$type}++;
-      $best = $type;
-      my @files = keys %{$archive{$type}};
-      print "Available $type versions: `@files'\n";
-      $latest_version{$type} = (sort {fmt_version($a) cmp fmt_version($b)}
-				keys %{$archive{$type}})[-1];
-      $latest_file{$type} = $archive{$type}{$latest_version{$type}};
-      print qq(Latest supported $type is `$latest_file{$type}'\n);
-    }
-  }
-
-  # Special-case v2.0.14
-  if (!$archive{golden} and $latest_version{beta} eq '2.0.11'
-      and $latest_version{alpha} eq '2.0.14') {
-    $best = 'alpha';		# It is tested!
-  }
-
-  undef $dir;
-  my $version;
-  if ($best) {
-    my $file = $latest_file{$best};
-    $version = $latest_version{$best};
-    print qq(Picking $best version $version, file $file\n);
-    if (-f $file) {
-      print qq(Well, I already have it, using the disk copy...\n);
-    } else {
-      print qq(Downloading `$base_url$file'...\n);
-      if ($ftp) {
-        $ftp->get($file) or die "Cannot get via FTP (",$ftp->message(),"): $!";
-	$ftp->quit or warn "Warning: cannot quit FTP: ", $ftp->message();
-      } else {
-	my $req = HTTP::Request->new(GET => "$base_url$file");
-	my $resp = $ua->request($req);
-	$resp->is_success
-	  or die "Can't fetch $base_url/$file: " . $resp->as_string;
-	my $base = basename($file);
-	open(F, ">$base") or die "Can't write to $base: $!";
-	binmode F or die "Can't binmode(): $!";
-	print F $resp->content;
-	close F;
-      }
-      print qq(Downloaded...\n);
-    }
-    print qq(Extracting...\n);
-    my $zcat = "gzip -dc";	# zcat may be the old .Z-extractor
-    print  "$zcat $file | tar -xvf -\n";
-    system "$zcat $file | tar -xvf -"
-      and do {
-	  print "Can't un-targz PARI: \$!=$!, exitcode=$?.\n";
-	  my @cmd = ($^X, qw(-MArchive::Tar -wle),
-		     'Archive::Tar->new(shift)->extract()', $file);
-	  print '  Now retry with "', join('" "', @cmd), "\"\n";
-	  system @cmd and die "Can't un-targz PARI: \$!=$!, exitcode=$?.\n"
-        };
-    ($dir = $file) =~ s,(?:.*[\\/])?(.*)\.t(ar\.)?gz$,$1,
-      or die "malformed name `$file'";
-    -d $dir or die "Did not find directory $dir!";
-  }
-  return ($dir, $version);
 }
 
 =item C<patches_for($version)>

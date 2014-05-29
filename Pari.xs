@@ -3606,7 +3606,7 @@ loadPari(name, v = 99)
 	     sv_setpv((SV*)RETVAL, proto);
 	 XSINTERFACE_FUNC_SET(RETVAL, flexible ? (void*)ep : (void*)func);
        } else {
-	 croak("Cannot load a Pari macro `%s'", olds);
+	 croak("Cannot load a Pari macro `%s': macros are unsupported", olds);
        }
      }
    OUTPUT:

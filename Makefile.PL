@@ -18,7 +18,7 @@ unless (-t STDOUT) {		# Better reports if run with redirections
 
 chmod 0400, 'typemap' if $^O =~ /cygwin/ and -f 'typemap' and not -r 'typemap';	# bug in some installations of cygwin???
 
-my $ok23 = 1;
+my $ok23 = 0;
 grep {/^machine=(.*)$/i		 and $common::machine = $1}  @ARGV;
 grep {/^configure$/i		 and $common::do_configure = 1}	     @ARGV;
 grep {/^paridir=(.*?)[\/\\]?$/i	 and $paridir = $1}	     @ARGV;

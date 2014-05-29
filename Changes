@@ -866,5 +866,15 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 	 AUTOMATED_TESTING and PERL_MM_USE_DEFAULT set...)
   Do not auto-download on 64-bit builds of MSWin32.
 
-2.0305_01080607
-  Change the default for $ok23 to 1.
+2.010807
+  Too long version name was a misprint.
+  Pay attention to PERL_EXTUTILS_AUTOINSTALL when interpreting empty answers to prompt (probably an overkill).
+     (disable this abomination by PERL_MATHPARI_TRUST_MANUAL)
+     (to see why this may be needed: http://www.cpantesters.org/cpan/report/a5d65ec6-6bf3-1014-87a8-67ba45601f20)
+  Report bytes in the answer for prompt.
+  Separate into separate subroutines inspecting versions available for download from the actual download.
+  Change the logic of fallback Net::FTP --> LWP: before, if Net::FTP fails in retrieving the directory listing;
+    now: if this happens, or if it fails to retrieve the file (how can it happen?! see http://www.cpantesters.org/cpan/report/e7f9d5a7-6bfa-1014-9d0f-1948c9c86cae)
+  __wrap_PARI_macro:	new function (not exported)
+  parse_as_gp:		new function (exported by default)
+  More verbose error message for "Cannot load a Pari macro".

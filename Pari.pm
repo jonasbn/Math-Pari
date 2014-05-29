@@ -30,7 +30,7 @@ L<Math::libPARI>).
 =item DEFAULT
 
 By default the package exports functions PARI(), PARIcol(), PARIvar(),
-PARImat() and PARImat_tr() which convert their argument(s) to a
+PARImat(), PARImat_tr() and parse_as_gp() which convert their argument(s) to a
 PARI object. (In fact PARI() is just an alias for C<new Math::Pari>).
 The function PARI() accepts following data as its arguments
 
@@ -100,6 +100,36 @@ input and output forms of matrices:
 
   print PARImat    [[1,2], [3,4]];	# prints [1,3;2,4]
   print PARImat_tr [[1,2], [3,4]];	# prints [1,2;3,4]
+
+=item parse_as_gp()
+
+Did you notice that when taking a string, PARI() requires that there
+is no whitespace there?  This is exactly as the C<PARI> library parses
+strings.  However, to simplify human interaction, the C<gp> calculator
+allows whitespace, comments, breaking into multiple lines, many
+independent expressions (such as function definitions).
+
+We do not include the corresponding C code from the calculator, but provide
+a Perl clone.  It supports whitespace, C<\\>-comments,, and, for multi-line
+arguments, it supports trailing C<\> for line-continuation, trailing binary ops,
+comma, opening parenthesis/bracket indicate lines with continuation, group of
+lines in C<{}> joined into one line.
+
+Keep in mind that this is just a convenience function, and no attempt was
+performed to make it particularly quick.  Moreover, the PARI user functions
+(or maybe it is better to call them user macros?) are currently not
+automatically importable into Perl, so to access functions defined in
+parse_as_gp()' argument may be awkward.  (The temporary fix is to use
+a temporary convenience function __wrap_PARI_macro():
+
+    parse_as_gp <<EOP;
+  add2(x) = x + 2
+  EOP
+    *add2 = Math::Pari::__wrap_PARI_macro 'add2';
+    print add2(17);
+
+but keep in mind that the generated this way wrapper is also not designed
+to be quick.)
 
 =item C<use> with arguments
 
@@ -900,7 +930,7 @@ require DynaLoader;
 # (move infrequently used names to @EXPORT_OK below)
 
 @EXPORT = qw(
-PARI PARIcol PARImat PARIvar PARImat_tr
+  PARI PARIcol PARImat PARIvar PARImat_tr parse_as_gp
 );
 
 # Other items we are prepared to export if requested (may be extended during
@@ -964,7 +994,7 @@ sub _shiftr {
 $initmem ||= 4000000;		# How much memory for the stack
 $initprimes ||= 500000;		# Calculate primes up to this number
 
-$VERSION = '2.0305_01080607';
+$VERSION = '2.010807';
 
 my $true = 1;
 # Propagate sv_true, sv_false to SvIOK:
@@ -1215,6 +1245,30 @@ for $name (keys %converted) {
 }
 
 @export_ok{@EXPORT_OK,@EXPORT} = (1) x (@EXPORT_OK + @EXPORT);
+
+sub remove_nl ($) { (my $in = shift) =~ s/\n//g; $in }
+sub parse_as_gp ($) {
+  my $in = shift;
+  $in =~ s/(\\[^\\]|[^"\s\\]|\n|"([^"\\]|\\.)*")|[^\S\n\r]+|\\\\[^\n]*/ defined($1) ? $1 : '' /ges;
+  # Now all unneeded whitespace (except LF) and comments are removed
+  $in =~ s/^\{(.*?)^}$/ remove_nl $1 /gems;
+  $in =~ s/(?<=[-=+*\/%^><|&,\(\[])\n(?<!--\n|\+\+\n)//gsm;	# not \ !
+  $in =~ s/\\\n//g;
+#  warn "in: <<$in>>\n";
+  my @in = split /\n/, $in;
+  $in = pop @in;
+  PARI($_) for @in;	# Void context (ignored???)
+  PARI($in)
+}
+
+sub MP___a___($) { $Math::Pari::__args::a->[shift] }
+sub __wrap_PARI_macro ($) {
+  my $name = shift;
+  sub {
+    local $Math::Pari::__args::a = [@_];
+    PARI("$name(" . (join ',', map "MP___a___($_)", 0..$#_) . ")")
+  }
+}
 
 sub link_gnuplot {
     eval 'use Term::Gnuplot 0.56; 1' or die;

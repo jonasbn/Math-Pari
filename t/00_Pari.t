@@ -445,6 +445,26 @@ EOE
 my $ff = Math::Pari::factor(24);
 test "[2,3;3,1]" eq "$ff";	# 132
 
+parse_as_gp <<'EOP';
+add1(x) = x + 1
+add_1(x) = x + 1  \\ with comment
+add___1(x) = x++
+add__1(x) = 
+  x +
+    1
+EOP
+
+test PARI("add1(3)") == 4;	# 133
+test PARI("add_1(3)") == 4;	# 134
+test PARI("add__1(3)") == 4;	# 135
+test parse_as_gp("yt=17\nadd___1(yt)+yt") == 35;	# 136
+
+*$_ = Math::Pari::__wrap_PARI_macro($_) and test 1 for qw(add1 add___1); # 137..138
+test add1(35) == 36;		# 139
+my $xT = 44;
+test add___1($xT) == 45;	# 140
+test $xT == 44;			# 141 (increment affects a local-to-function copy???)
+
 for my $l (0..22) {		# + 23*9*2
   for my $d (1..9, -9..-1) {
     my $n = $d . (0 x $l);
@@ -456,6 +476,7 @@ for my $l (0..22) {		# + 23*9*2
     test ($n eq $p or $p =~ /(0{15}|9{15})\d{0,3}e\d\d$/i);
   }
 }
+
 my $ow;
 BEGIN {
   $ow = $^W;
@@ -474,4 +495,4 @@ BEGIN {
   $^W = $ow;
 }
 
-sub last {132 + 23*9*2}
+sub last {141 + 23*9*2}
