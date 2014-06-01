@@ -53,7 +53,7 @@ Setting up Math::Pari with Perl $] on $^O version $Config{osvers};
 EOP
 
 if ($common::parilib) {
-  $pari_version = '2001004';	# XXXX How to get a correct one?
+  $pari_version = '2001007';	# XXXX How to get a correct one?
   $define = '-DNO_HIGHLEVEL_PARI';
   print <<EOP;
 Trying to use existing PARI library (at $common::parilib)
@@ -200,6 +200,13 @@ my $extra_inc = extra_includes($paridir);
 				  PARI_DIR	  => $paridir,
 				},
 	      );
+
+if (not $common::patches_run or @common::patches_fail) {
+  my @patches_needed = patches_for($pari_version);
+  my $msg = $common::patches_run ? "failed when applied" : "were not applied";
+  push @common::patches_fail, @patches_needed unless $common::patches_run;
+  warn "\nThe following patches were judged to be beneficial, but $msg:\n\t@common::patches_fail\n";
+}
 
 
 # Remake POD if the source changed.

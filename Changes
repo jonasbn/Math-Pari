@@ -878,3 +878,13 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
   __wrap_PARI_macro:	new function (not exported)
   parse_as_gp:		new function (exported by default)
   More verbose error message for "Cannot load a Pari macro".
+
+2.010808
+  A night of sleep fixed problems of parse_of_gp with the operator \ and empty lines.
+     (test suite updated)
+  Actually, mingw was not ready for HAVE_OPENDIR.
+  Store which patches were applied in $dir/.perl.patches.
+  Report which patches were not applied.
+  Export patches_for() from BuildPari.
+  pari_tgz build option was broken (by LWP-after-NFTP support code — which, apparently, did not help with timeouts).
+  Ignore 0-size "downloaded" files.

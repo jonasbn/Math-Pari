@@ -9,6 +9,7 @@ require Exporter;
 	     find_pari_dir
 	     download_pari
 	     patch_pari
+	     patches_for
 	     download_and_patch_pari
 	     make_pod
 	     build_tests
@@ -229,6 +230,25 @@ EOW
   return 'pari-2.1.7.tgz';
 }
 
+sub extract_pari_archive ($) {
+    my $file = shift;
+    print qq(Extracting...\n);
+    my $zcat = "gzip -dc";	# zcat may be the old .Z-extractor
+    print  "$zcat $file | tar -xvf -\n";
+    system "$zcat $file | tar -xvf -"
+      and do {
+	  print "Can't un-targz PARI: \$!=$!, exitcode=$?.\n";
+	  my @cmd = ($^X, qw(-MArchive::Tar -wle),
+		     'Archive::Tar->new(shift)->extract()', $file);
+	  print '  Now retry with "', join('" "', @cmd), "\"\n";
+	  system @cmd and die "Can't un-targz PARI: \$!=$!, exitcode=$?.\n"
+        };
+    (my $dir = $file) =~ s,(?:.*[\\/])?(.*)\.t(ar\.)?gz$,$1,
+      or die "malformed name `$file'";
+    -d $dir or die "Did not find directory $dir!";
+    return $dir;
+}
+
 sub finish_download_pari ($$$$;$) {
   my($base_url, $dir, $_archive, $ftp, $ua) = (shift, shift, shift, shift, shift);
   my %archive = %$_archive;
@@ -261,8 +281,8 @@ sub finish_download_pari ($$$$;$) {
     my $file = $latest_file{$best};
     $version = $latest_version{$best};
     print qq(Picking $best version $version, file $file\n);
-    if (-f $file) {
-      print qq(Well, I already have it, using the disk copy...\n);
+    if (my $size = -s $file) {
+      print qq(Well, I already have it (size=$size), using the disk copy...\n);
     } else {
       print qq(Downloading `$base_url$file'...\n);
       if ($ftp) {
@@ -281,20 +301,7 @@ sub finish_download_pari ($$$$;$) {
       }
       print qq(Downloaded...\n);
     }
-    print qq(Extracting...\n);
-    my $zcat = "gzip -dc";	# zcat may be the old .Z-extractor
-    print  "$zcat $file | tar -xvf -\n";
-    system "$zcat $file | tar -xvf -"
-      and do {
-	  print "Can't un-targz PARI: \$!=$!, exitcode=$?.\n";
-	  my @cmd = ($^X, qw(-MArchive::Tar -wle),
-		     'Archive::Tar->new(shift)->extract()', $file);
-	  print '  Now retry with "', join('" "', @cmd), "\"\n";
-	  system @cmd and die "Can't un-targz PARI: \$!=$!, exitcode=$?.\n"
-        };
-    ($dir = $file) =~ s,(?:.*[\\/])?(.*)\.t(ar\.)?gz$,$1,
-      or die "malformed name `$file'";
-    -d $dir or die "Did not find directory $dir!";
+    $dir = extract_pari_archive($file);
   }
   return ($dir, $version);
 }
@@ -329,6 +336,7 @@ sub download_pari {
   if ($srcfile and -s $srcfile) {
     die "The FILE supplied via the pari_tgz=$srcfile option did not match /$match/"
       unless $match_pari_archive->($srcfile, 'ok2.3');
+    return finish_download_pari($base_url, $dir, \%archive, undef, $ua);
   } else {
     if ($force) {
       print "Forced autofetching...\n\n"
@@ -580,10 +588,17 @@ sub patch_pari {
     my $cmd = "cd $dir && $patch -p1 @args < $pp";
     print "$cmd\n";
     system "$cmd"
-      and warn "...Could not patch: \$?=$?, $!; continuing anyway...\n";
+      and (push @common::patches_fail, $p), warn "...Could not patch: \$?=$?, $!; continuing anyway...\n";
     $rc .= "'$pp' => $?, "
   }
   print "Finished patching...\n";
+  $common::patches_run = 1;
+  if (open my $f, ">> $dir/.perl.patches") {
+    print $f join "\n", "# Needed patches:", @patches, "# Failed patches (if any):", @common::patches_fail, '';
+    close $f;
+  } else {
+     warn "???  Cannot report which patches were applied in $dir/.perl.patches: $!"
+  }
   $rc =~ s/,?\s+$//;
   $rc
 }

@@ -104,13 +104,14 @@ input and output forms of matrices:
 =item parse_as_gp()
 
 Did you notice that when taking a string, PARI() requires that there
-is no whitespace there?  This is exactly as the C<PARI> library parses
-strings.  However, to simplify human interaction, the C<gp> calculator
+is no whitespace there (outside of string constants)?  This is exactly 
+as the C<PARI> library parses strings.
+However, to simplify human interaction, the C<gp> calculator
 allows whitespace, comments, breaking into multiple lines, many
 independent expressions (such as function definitions).
 
 We do not include the corresponding C code from the calculator, but provide
-a Perl clone.  It supports whitespace, C<\\>-comments,, and, for multi-line
+a Perl clone.  It supports whitespace, C<\\>-comments, and, for multi-line
 arguments, it supports trailing C<\> for line-continuation, trailing binary ops,
 comma, opening parenthesis/bracket indicate lines with continuation, group of
 lines in C<{}> joined into one line.
@@ -994,7 +995,7 @@ sub _shiftr {
 $initmem ||= 4000000;		# How much memory for the stack
 $initprimes ||= 500000;		# Calculate primes up to this number
 
-$VERSION = '2.010807';
+$VERSION = '2.010808';
 
 my $true = 1;
 # Propagate sv_true, sv_false to SvIOK:
@@ -1249,11 +1250,13 @@ for $name (keys %converted) {
 sub remove_nl ($) { (my $in = shift) =~ s/\n//g; $in }
 sub parse_as_gp ($) {
   my $in = shift;
-  $in =~ s/(\\[^\\]|[^"\s\\]|\n|"([^"\\]|\\.)*")|[^\S\n\r]+|\\\\[^\n]*/ defined($1) ? $1 : '' /ges;
+  $in =~ s/(\\(?!\\)|[^"\s\\]|\n|"([^"\\]|\\.)*")|[^\S\n]+|\\\\[^\n]*/ defined($1) ? $1 : '' /ges;
   # Now all unneeded whitespace (except LF) and comments are removed
   $in =~ s/^\{(.*?)^}$/ remove_nl $1 /gems;
   $in =~ s/(?<=[-=+*\/%^><|&,\(\[])\n(?<!--\n|\+\+\n)//gsm;	# not \ !
   $in =~ s/\\\n//g;
+  $in =~ s/\n{2,}/\n/g;		# Empty lines in the middle
+  $in =~ s/\A\n//;		# Empty line at start
 #  warn "in: <<$in>>\n";
   my @in = split /\n/, $in;
   $in = pop @in;

@@ -446,12 +446,20 @@ my $ff = Math::Pari::factor(24);
 test "[2,3;3,1]" eq "$ff";	# 132
 
 parse_as_gp <<'EOP';
+
 add1(x) = x + 1
+  \\ a comment in between
 add_1(x) = x + 1  \\ with comment
+
 add___1(x) = x++
+int_div(a,b) = a \ b
+
+str_ex() = "foo \" bar"
+
 add__1(x) = 
-  x +
+  x + \\ broken when possible
     1
+  \\ nothing more
 EOP
 
 test PARI("add1(3)") == 4;	# 133
@@ -459,11 +467,14 @@ test PARI("add_1(3)") == 4;	# 134
 test PARI("add__1(3)") == 4;	# 135
 test parse_as_gp("yt=17\nadd___1(yt)+yt") == 35;	# 136
 
-*$_ = Math::Pari::__wrap_PARI_macro($_) and test 1 for qw(add1 add___1); # 137..138
-test add1(35) == 36;		# 139
+*$_ = Math::Pari::__wrap_PARI_macro($_) and test 1 for qw(add1 add___1 str_ex int_div); # 137..140
+test add1(35) == 36;		# 141
 my $xT = 44;
-test add___1($xT) == 45;	# 140
-test $xT == 44;			# 141 (increment affects a local-to-function copy???)
+test add___1($xT) == 45;	# 142
+test $xT == 44;			# 143 (increment affects a local-to-function copy???)
+test str_ex() eq '"foo \" bar"'; # 144
+test int_div(13,3) == 4;	# 145
+#warn "str_ex=<<", str_ex(), ">>\n";	# <<foo " bar>>
 
 for my $l (0..22) {		# + 23*9*2
   for my $d (1..9, -9..-1) {
@@ -495,4 +506,4 @@ BEGIN {
   $^W = $ow;
 }
 
-sub last {141 + 23*9*2}
+sub last {145 + 23*9*2}

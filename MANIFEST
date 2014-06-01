@@ -47,3 +47,4 @@ utils/Math/PariBuild.pm
 utils/inc_h.diff
 utils/01_no_extra_newlines.test
 META.yml                                 Module meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)
