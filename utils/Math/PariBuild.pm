@@ -1,6 +1,6 @@
 package Math::PariBuild;
 
-$VERSION = '2.01080604';
+$VERSION = '2.030502';
 
 require Exporter;
 @ISA = 'Exporter';
@@ -1727,6 +1727,14 @@ sub code_C_translator {
 
   # 23 == 21  47==48  91 == 96 (this one unsupported)
   join '', @t, @tt;
+}
+
+sub code_C_comment_interface {
+  # Some historic changes in interfaces we do not care about (E vs I)
+  my %c = (%old_expected_codes, %expected_codes);
+  my $res;
+#  s{^(interface(\d+)\(.*)}{ my $res = defined $c{$2} ? qq(\t/* Code="$c{$2}" */) : ''; $1 . $res}e;
+  s[^(interface(\d+)\(.*?\n\s*CODE:\s*\{)]{ my $res = defined $c{$2} ? qq(\t/* Code="$c{$2}" */) : ''; $1 . $res}msge;
 }
 
 =back

@@ -937,12 +937,12 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 XXX  The report of missing patches is very wrong (false negative and positives) when reusing a patched directory.
   Do not call pari_init_defaults() if we use INIT_DFTm.
   Call pari_close_opts() on restart (after 2.2.12).
-XXX Still fails to restart: perl -Mblib -wle "for (1..shift) {delete $INC{q(Math/Pari.pm)}; require Math::Pari; print sin Math::Pari::PARI(1)}" 2
+XXX  Still fails to restart: perl -Mblib -wle "for (1..shift) {delete $INC{q(Math/Pari.pm)}; require Math::Pari; print sin Math::Pari::PARI(1)}" 2
 XXX  Crashes in Math::Pari::DESTROY  Cmp with: http://pari.math.u-bordeaux.fr/archives/pari-dev-0511/msg00037.html
   Do not try gnuplot with versions after 2.3.*.
   $ok32 was not updated!!!
   Add macros needed for 2.5.0 to our paricfg.h.
-XXX We did not put the name for level1 kernel there yet...
+XXX  We did not put the name for level1 kernel there yet...
   New files libPARI/pre-noinline.h libPARI/post-noinline.h (to generate level0 kernel).
   New code to generate level0 and level1 kernels above 2.3.*.  (We did not reuse the code to generate pariinl.h.)  (libPARI.a is OK with 2.5.0)
 XXX    only none for level1 now.
@@ -953,17 +953,35 @@ XXX    only none for level1 now.
   We had our own function allocatemem(); rename.
   fill_argvect() and loadPari() need: a const* argument and variables for ep->code.
   autoloadPerlFunction() requires a const* argument.
-XXX Preliminary: how to check that ep is a PARI function, and get its address.
-XXX On the first extract of Makefile.PL, 822 fails?!  Second run of Makefile.PL succeeds (2.5.0).
+XXX  Preliminary: how to check that ep is a PARI function, and get its address.
+XXX  On the first extract of Makefile.PL, 822 fails?!  Second run of Makefile.PL succeeds (2.5.0).
 	Maybe it generates empty files which stop a rerun???
   On MSWin32, look in systems/mingw for C files.
   bruteall() disappears (again!) in 2.5.0.
   let pprint() be the same as print() on 2.5.0 (as in GP/PARI).
   use init_stack() or pari_init_stack() instead of allocatemoremem().
 XXXXXXXXXXXX				What happens with *workSV when we reassign it???!!!   LEAK!!!
-XXX  t_FFELT, t_CLOSURE
 XXX  for t_CLOSURE, aid0() checks typ(gelt(,6)) == t_VEC.
 XXX  Temporarily (???) in pariVar and findVariable, prohibit variables holding closures.
-XXX  Mapping from section names to numbers changed!!!  (Need to recheck with every version???  Definitely changed in 2.10...)
+[X]  Mapping from section names to numbers changed!!!  (Need to recheck with every version???  Definitely changed in 2.10...)
 XXX  Added a test for internal (non-exportable) Pari "function names" (such as "_!").  (Need to recheck with every version???)
 		A few tests started to pass with 2.5.0 on Windows: Failed 16/82 test programs. 18/356 subtests failed.
+XXX  t_FFELT, t_CLOSURE
+XXX  2.10.0: t_ERROR t_INFINITY. 2 t_LIST is actually in 2.1.7, but we treated it as a black box.  Should we continue this???
+XXX  Argument types 'I' 'E' changed their meaning.
+XXX     (Used in ./func_codes.h too, with 'I' instead of 'E'; in 22 27 28 37 47 48 49 73 83 84 86 87!)
+XXX  New type 'J' (at least in 2.10.0???).
+XXX  DEBUGMEM DEBUGLEVEL (at least in 2.10.0???)
+
+XXXXXXXXXXXXXXXXX On NetBSD: es.c:312:13: error: 'input_method' has no member named '__fgets_chk'
+	(Somebody redefined `fgets' between paripriv.h and line 312 of es.c.  But there is no `#include's there???
+	(Only fgets() is redefined, not fgets.  Due to -D_FORTIFY_SOURCE=2.)
+
+2.030502
+  New function code_C_comment_interface() in Math::PariBuild:
+    perl -I utils -MMath::PariBuild -w00pe "Math::PariBuild::code_C_comment_interface" Pari.xs >Pari.xs-n
+  Add the corresponding string codes to text of interfaceDDD() XSUBs (to those who have associated string codes).
+    (as above, and then manually for 9900).
+  New XSUB added_sections() (essentially, to remind that sections change time to time).
+XXX  Handle added_sections() in Math::Pari (stub only! XXXX).
+XXX  (Temporarily???) Remove -D_FORTIFY_SOURCE=2 (on NetBSD breaks input_method->fgets() in es.c).

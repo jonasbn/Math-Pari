@@ -59,7 +59,6 @@ extern "C" {
 void init_defaults(int force);	/* Probably, will never be fixed in 2.1.* */
 #endif
 
-
 #if PARI_VERSION_EXP >= 2004000	/* Unclear when exactly they disappeared.  Miss in 3.5.0 */
 extern entree functions_basic[];
 extern entree  functions_highlevel[];
@@ -179,7 +178,6 @@ SV_myvoidp_set(SV *sv, void *p)
 	SV_myvoidp_reset_clone_IVX(sv);			\
     } } STMT_END
 
-
 /* Should be applied to SV* and AV* only */
 #  define SV_myvoidp_get(sv)						\
 	((SvTYPE(sv) == SVt_PVAV) ? *PARI_SV_to_voidpp(sv) : INT2PTR(void*,SvIV(sv)))
@@ -259,7 +257,6 @@ typedef char * PariExpr;
 typedef GEN * GEN_Ptr;
 
 XS((*math_pari_subaddr));		/* On CygWin XS() has attribute conflicting with static */
-
 
 #if defined(MYMALLOC) && defined(EMBEDMYMALLOC) && defined(UNEMBEDMYMALLOC)
 
@@ -348,7 +345,6 @@ long offStack;
 #  define	prec	precreal
 #endif
 
-
 #if PARI_VERSION_EXP >= 2000018
 
 GEN
@@ -375,7 +371,6 @@ _gbitshiftr(GEN g, long s)
 {
     return gshift3(g, -s, signe(g) < 0); /* Bug up to 2.2.2: 1 should be OK */
 }
-
 
 #endif	/* PARI_VERSION_EXP >= 2002001 && PARI_VERSION_EXP <= 2002007 */
 
@@ -474,7 +469,6 @@ numvar(GEN x)
       croak("Corrupted data: should be variable");
   return varn(x);
 }
-
 
 static SV *
 PARIvar(char *s)
@@ -719,8 +713,6 @@ longword(GEN x, long n)
   return x[n];
 }
 
-
-
 SV* worksv;
 SV* workErrsv;
 
@@ -747,7 +739,6 @@ svErrputc(char c)
 {
   sv_catpvn(workErrsv,&c,1);
 }
-
 
 void
 svErrputs(PUTS_CONST char* p)
@@ -1376,7 +1367,6 @@ detach_stack(void)
     moveoffstack_newer_than((SV *) GENfirstOnStack);
 }
 
-
 static unsigned long
 s_allocatemem(unsigned long newsize)
 {
@@ -1392,7 +1382,6 @@ s_allocatemem(unsigned long newsize)
     }
     return parisize;
 }
-
 
 GEN
 callPerlFunction(entree *ep, ...)
@@ -1521,7 +1510,6 @@ exprHandler_Perl(char *s)
     
     return res;
 }
-
 
 static GEN
 Arr_FETCH(GEN g, I32 n) 
@@ -1774,7 +1762,6 @@ fill_outvect(SV **sv_OUT, GEN *gen_OUT, long c, long oldavma)
 	resetSVpari(sv_OUT[c], gen_OUT[c], oldavma);
 }
 
-
 #define _to_int(in,dummy1,dummy2) to_int(in)
 
 static GEN
@@ -1886,6 +1873,19 @@ _is_internal(int tag)
 #endif	/* !( PARI_VERSION_EXP < 2004000) */
 }
 
+char *
+added_sections()
+{
+#if PARI_VERSION_EXP <= 2006000
+   /* Suggestion on format (part of 2.10.0), only use short names: "4: functions related to COMBINATORICS\n13: L-FUNCTIONS" */
+   return "";
+#else	/* !( PARI_VERSION_EXP < 2006000) */
+   /* Check by entering "?" at gp prompt.  Compare with the list in Pari.pm */
+   croak("Do not know which \"sections\" (of list of functions) were added to PARI at v2.6.0");
+#endif	/* !( PARI_VERSION_EXP < 2006000) */
+}
+
+
 MODULE = Math::Pari PACKAGE = Math::Pari PREFIX = Arr_
 
 PROTOTYPES: ENABLE
@@ -1934,7 +1934,6 @@ sv2parimat(sv)
 long	oldavma=avma;
      SV *	sv
 
-
 SV *
 pari2iv(in)
 long	oldavma=avma;
@@ -1942,14 +1941,12 @@ long	oldavma=avma;
  CLEANUP:
    avma=oldavma;
 
-
 SV *
 pari2nv(in)
 long	oldavma=avma;
      GEN	in
  CLEANUP:
    avma=oldavma;
-
 
 SV *
 pari2num_(in,...)
@@ -2209,7 +2206,7 @@ GEN
 interface9900()
 long	oldavma=avma;
  CODE:
-  {
+  {	/* Code="" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2226,7 +2223,7 @@ interface1(arg1)
 long	oldavma=avma;
 GEN	arg1
  CODE:
-  {
+  {	/* Code="Gp" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2261,13 +2258,12 @@ long	inv = NO_INIT
  OUTPUT:
    RETVAL
 
-
 long
 interface10(arg1)
 long	oldavma=avma;
 GEN	arg1
  CODE:
-  {
+  {	/* Code="lG" */
     dFUNCTION(long);
 
     if (!FUNCTION) {
@@ -2311,7 +2307,7 @@ interface11(arg1)
 long	oldavma=avma;
 long	arg1
  CODE:
-  {
+  {	/* Code="L" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2347,7 +2343,7 @@ interface18(arg1)
 long	oldavma=avma;
 GEN	arg1
  CODE:
-  {
+  {	/* Code="G" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2365,7 +2361,7 @@ long	oldavma=avma;
 GEN	arg1
 GEN	arg2
  CODE:
-  {
+  {	/* Code="GG" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2404,7 +2400,7 @@ long	oldavma=avma;
 GEN	arg1
 GEN	arg2
  CODE:
-  {
+  {	/* Code="lGG" */
     dFUNCTION(long);
 
     if (!FUNCTION) {
@@ -2493,7 +2489,7 @@ long	oldavma=avma;
 GEN	arg1
 GEN	arg2
  CODE:
-  {
+  {	/* Code="GGp" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2512,7 +2508,7 @@ GEN	arg1
 GEN	arg2
 GEN	arg3
  CODE:
-  {
+  {	/* Code="GGG" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2531,7 +2527,7 @@ GEN	arg1
 GEN	arg2
 GEN	arg3
  CODE:
-  {
+  {	/* Code="lGGG" */
     dFUNCTION(long);
 
     if (!FUNCTION) {
@@ -2553,7 +2549,7 @@ GEN	arg2
 GEN	arg3
 GEN	arg4
  CODE:
-  {
+  {	/* Code="GGGG" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2591,7 +2587,7 @@ long	oldavma=avma;
 GEN	arg1
 GEN	arg2
  CODE:
-  {
+  {	/* Code="GnP" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2603,7 +2599,6 @@ GEN	arg2
  OUTPUT:
    RETVAL
 
-
 GEN
 interface13(arg1, arg2=0, arg3=gzero)
 long	oldavma=avma;
@@ -2611,7 +2606,7 @@ GEN	arg1
 long	arg2
 GEN	arg3
  CODE:
-  {
+  {	/* Code="GD0,L,D0,G," */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2623,14 +2618,13 @@ GEN	arg3
  OUTPUT:
    RETVAL
 
-
 GEN
 interface14(arg1,arg2=0)
 long	oldavma=avma;
 GEN	arg1
 GEN	arg2
  CODE:
-  {
+  {	/* Code="GDn" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2642,14 +2636,13 @@ GEN	arg2
  OUTPUT:
    RETVAL
 
-
 GEN
 interface21(arg1,arg2)
 long	oldavma=avma;
 GEN	arg1
 long	arg2
  CODE:
-  {
+  {	/* Code="GL" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2691,7 +2684,6 @@ bool	inv
  OUTPUT:
    RETVAL
 
-
 GEN
 interface22(arg1,arg2,arg3)
 long	oldavma=avma;
@@ -2699,7 +2691,7 @@ GEN	arg1
 PariVar	arg2
 PariExpr	arg3
  CODE:
-  {
+  {	/* Code="GVI" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2717,7 +2709,7 @@ long	oldavma=avma;
 GEN	arg1
 long	arg2
  CODE:
-  {
+  {	/* Code="GL" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2735,7 +2727,7 @@ long	oldavma=avma;
 long	arg1
 GEN	arg2
  CODE:
-  {
+  {	/* Code="LG" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2754,7 +2746,7 @@ GEN	arg1
 GEN	arg2
 long	arg3
  CODE:
-  {
+  {	/* Code="GGD0,L," */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2773,7 +2765,7 @@ GEN	arg1
 GEN	arg2
 GEN	arg3
  CODE:
-  {
+  {	/* Code="GnG" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2792,7 +2784,7 @@ PariVar	arg1
 GEN	arg2
 PariExpr	arg3
  CODE:
-  {
+  {	/* Code="V=GIp" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2811,7 +2803,7 @@ GEN	arg1
 PariVar	arg2
 PariExpr	arg3
  CODE:
-  {
+  {	/* Code="GDVDI" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2870,7 +2862,7 @@ GEN	arg2
 GEN	arg3
 GEN	arg4
  CODE:
-  {
+  {	/* Code="GDGDGD&" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2889,7 +2881,7 @@ GEN	arg1
 GEN	arg2
 long	arg3
  CODE:
-  {
+  {	/* Code="GGL" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2909,7 +2901,7 @@ GEN	arg2
 GEN	arg3
 long	arg4
  CODE:
-  {
+  {	/* Code="GGGD0,L,p" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2927,7 +2919,7 @@ long	arg1
 long	arg2
 long	arg3
  CODE:
-  {
+  {	/* Code="vLLL" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2944,7 +2936,7 @@ long	arg1
 GEN	arg2
 GEN	arg3
  CODE:
-  {
+  {	/* Code="vLGG" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2964,7 +2956,7 @@ GEN	arg2
 GEN	arg3
 PariExpr	arg4
  CODE:
-  {
+  {	/* Code="V=GGIp" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -2985,7 +2977,7 @@ GEN	arg2
 GEN	arg3
 PariExpr	arg4
  CODE:
-  {
+  {	/* Code="V=GGIDG" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -3006,7 +2998,7 @@ GEN	arg2
 GEN	arg3
 PariExpr	arg4
  CODE:
-  {
+  {	/* Code="V=GGIDG" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -3027,7 +3019,7 @@ PariVar	arg1
 PariVar	arg2
 PariExpr	arg3
  CODE:
-  {
+  {	/* Code="GGDVDVDI" */
     dFUNCTION(GEN);
 # arg1 and arg2 may finish to be the same entree*, like after $x=$y=PARIvar 'x'
     if (arg1 == arg2 && arg1) {
@@ -3055,7 +3047,7 @@ GEN	arg2
 GEN	arg3
 PariExpr	arg4
  CODE:
-  {
+  {	/* Code="vV=GGI" */
     dFUNCTION(void);
 
     if (!FUNCTION) {
@@ -3074,7 +3066,7 @@ GEN	arg1
 PariVar	arg2
 PariExpr	arg3
  CODE:
-  {
+  {	/* Code="vGVI" */
     dFUNCTION(void);
 
     if (!FUNCTION) {
@@ -3086,7 +3078,6 @@ PariExpr	arg3
  CLEANUP:
    avma=oldavma;
 
-
 # These interfaces were automatically generated:
 
 long
@@ -3094,7 +3085,7 @@ interface16(arg1)
 long	oldavma=avma;
     char * arg1
  CODE:
-  {
+  {	/* Code="ls" */
     dFUNCTION(long);
 
     if (!FUNCTION) {
@@ -3108,13 +3099,12 @@ long	oldavma=avma;
  CLEANUP:
    avma=oldavma;
 
-
 void
 interface19(arg1, arg2)
     long arg1
     long arg2
  CODE:
-  {
+  {	/* Code="vLL" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -3123,7 +3113,6 @@ interface19(arg1, arg2)
 
     FUNCTION(arg1, arg2);
   }
-
 
 GEN
 interface44(arg1, arg2, arg3, arg4)
@@ -3145,7 +3134,6 @@ long	oldavma=avma;
  OUTPUT:
    RETVAL
 
-
 GEN
 interface45(arg1, arg2, arg3=0)
 long	oldavma=avma;
@@ -3153,7 +3141,7 @@ long	oldavma=avma;
     GEN arg2
     long arg3
  CODE:
-  {
+  {	/* Code="LGD0,L," */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -3165,7 +3153,6 @@ long	oldavma=avma;
  OUTPUT:
    RETVAL
 
-
 void
 interface59(arg1, arg2, arg3, arg4, arg5)
 long	oldavma=avma;
@@ -3175,7 +3162,7 @@ long	oldavma=avma;
     GEN arg4
     GEN arg5
  CODE:
-  {
+  {	/* Code="vLGGGG" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -3186,7 +3173,6 @@ long	oldavma=avma;
   }
  CLEANUP:
    avma=oldavma;
-
 
 GEN
 interface73(arg1, arg2, arg3, arg4, arg5, arg6=0, arg7=0)
@@ -3199,7 +3185,7 @@ long	oldavma=avma;
     long arg6
     long arg7
  CODE:
-  {
+  {	/* Code="LV=GGIpD0,L,D0,L," */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -3211,7 +3197,6 @@ long	oldavma=avma;
  OUTPUT:
    RETVAL
 
-
 void
 interface86(arg1, arg2, arg3, arg4, arg5)
 long	oldavma=avma;
@@ -3221,7 +3206,7 @@ long	oldavma=avma;
     GEN arg4
     PariExpr arg5
  CODE:
-  {
+  {	/* Code="vV=GGGI" */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -3233,7 +3218,6 @@ long	oldavma=avma;
  CLEANUP:
    avma=oldavma;
 
-
 void
 interface87(arg1, arg2, arg3, arg4=0)
 long	oldavma=avma;
@@ -3242,7 +3226,7 @@ long	oldavma=avma;
     PariExpr arg3
     long arg4
  CODE:
-  {
+  {	/* Code="vV=GID0,L," */
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
@@ -3253,7 +3237,6 @@ long	oldavma=avma;
   }
  CLEANUP:
    avma=oldavma;
-
 
 bool
 _2bool(arg1,arg2,inv)
@@ -3729,7 +3712,6 @@ loadPari(name, v = 99)
    OUTPUT:
      RETVAL
 
-
 # Tag is menu entry, or -1 for all.
 
 void
@@ -4051,7 +4033,6 @@ DESTROY(rv)
 	 SVnum_dec;
      }
 
-
 SV *
 pari_print(in)
     GEN in
@@ -4136,6 +4117,9 @@ unsigned long
 longword(x,n)
     GEN x
     long n
+
+char *
+added_sections()
 
 MODULE = Math::Pari PACKAGE = Math::Pari	PREFIX = s_
 

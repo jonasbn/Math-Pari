@@ -369,6 +369,7 @@ sub MY::const_config
  $flags =~ s/(-[fK]?\s*)pic\b/${1}PIC/;
  $flags =~ s/-KPIC/-K PIC/;	# Apparently needed on Solaris...
  $self->{'CCCDLFLAGS'} = $flags;
+ $self->{'CCFLAGS'} =~ s/(?<!\S)-D_FORTIFY_SOURCE=\d+//;	# XXXX On NetBSD; breaks input_method->fgets() of es.c
  if ($^O eq 'MSWin32' && $Config{'ccflags'} =~ /-DPERL_OBJECT/)
   {
    $self->{'LDFLAGS'} =~ s/-(debug|pdb:\w+)\s+//g;

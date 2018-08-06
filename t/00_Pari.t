@@ -177,6 +177,7 @@ sub incr1 {
 
 Math::Pari::installPerlFunction(\&incr1, "incrJ");
 
+print "# installed\n";
 $x = 0;
 Math::Pari::fordiv(28, 'j', 'incrJ(j)');
 

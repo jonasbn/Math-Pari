@@ -994,7 +994,7 @@ sub _shiftr {
 $initmem ||= 4000000;		# How much memory for the stack
 $initprimes ||= 500000;		# Calculate primes up to this number
 
-$VERSION = '2.030501';
+$VERSION = '2.030502';
 
 my $true = 1;
 # Propagate sv_true, sv_false to SvIOK:
@@ -1116,6 +1116,7 @@ sub new {
 	       11 programming
 	      );
 @sections{values %names} = keys %names;
+warn "No code to handle added sections yet" if added_sections();
 
 @converted{split /,\s+/, qq(buchimag, buchreal,
     buchgen, buchgenforcefu, buchgenfu, buchinit, buchinitforcefu, buchinitfu,
