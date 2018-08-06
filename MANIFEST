@@ -10,6 +10,7 @@ TODO
 func_codes.h
 libPARI/Makefile.PL
 libPARI/gphelp
+libPARI/gphelp-ini
 libPARI/extract_codes.pl
 libPARI/expected_codes
 libPARI/codes_2014

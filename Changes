@@ -888,3 +888,9 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
   Export patches_for() from BuildPari.
   pari_tgz build option was broken (by LWP-after-NFTP support code — which, apparently, did not help with timeouts).
   Ignore 0-size "downloaded" files.
+
+
+2.010808
+  MakeMaker of 5.22 (and, maybe, 5.20) started to call test_dynamic target in the daughter Makefile.
+  Correct "{" in RExes of libPARI/gphelp.
+  Attempt to workaround a broken config of gcc on vendor's Perl on Solaris.

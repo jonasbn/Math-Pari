@@ -270,9 +270,26 @@ EOI
   return '
 all :: libPARI$(LIB_EXT)
 
+#  Makefile.PL skips sections: distclean test dist makeaperl xs_o static
+#  We need to restore targets which may be called from outside (e.g., 5.22 starts to call test_dynamic)
+
 static ::       libPARI$(LIB_EXT)
 
+
 test:
+
+test_:
+
+test_static:
+
+test_dynamic:
+
+testdb:
+
+testdb_static:
+
+testdb_dynamic:
+
 
 libPARI$(LIB_EXT): $(OBJECT)
 	-$(RM_F) libPARI$(LIB_EXT)

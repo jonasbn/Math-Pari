@@ -1,7 +1,4 @@
 #!F:/EMX.ADD/BIN/perl.exe
-
-# IZ: fix "{" in RExen
-
 #
 # $Id: gphelp.in,v 1.17 2001/02/02 19:45:58 karim Exp $
 # 
@@ -313,7 +310,7 @@ sub apropos_check
   return if (! /$help/);
 
   $_ = $current;
-  s/\\b\{(.)\}/\\$1/; s/\{\}//g;
+  s/\\b{(.)}/\\$1/; s/\{\}//g;
   s/\\pow/^/; s/\\%/%/; s/\\bs/\\/; s/\\\#/\#/g;
   s,\+\$/\$-,+/-,;
   if (/ /) { push(@sentence_list,$_); } else { push(@list,$_); }
@@ -680,7 +677,7 @@ sub basic_subst
   s/\\fun\s*\{([^{}]*)\}\s*\{((?:[^{}]|\{[^{}]*\})*)\}\s*\{((?:[^{}]|\{[^{}]*\})*)\}/\\kbd{$1 \\key{$2}($3)}\\sidx{$2}/g;
 
   s/\\\\(?=[a-zA-Z])/\\bs /g;
-  s/\\b\{\}\\b\{\}/\\bs\\bs /g;
+  s/\\b{}\\b{}/\\bs\\bs /g;
   s/\\\\/\\bs/g;
   s/(\'\'|\`\`)/"/g unless $to_pod;     # (english) double quotes
   # asymptotic or isomorphic (~) [beware of ties]
@@ -693,19 +690,19 @@ sub basic_subst
 
   s/\\(equiv)(?![a-zA-Z])/ = /g;
   s/\\`a/$tr{agrave}/g;
-  s/\\`\{a\}/$tr{agrave}/g;
+  s/\\`{a}/$tr{agrave}/g;
   s/\\"o/$tr{ouml}/g;
-  s/\\"\{o\}/$tr{ouml}/g;
+  s/\\"{o}/$tr{ouml}/g;
   s/\\"u/$tr{uuml}/g;
-  s/\\"\{u\}/$tr{uuml}/g;
+  s/\\"{u}/$tr{uuml}/g;
   s/\\'e/$tr{eacute}/g;
-  s/\\'\{e\}/$tr{eacute}/g;
+  s/\\'{e}/$tr{eacute}/g;
 
   s/(^|[^\\])%.*/$1/g;		        # comments
   s/\\vadjust\s*\{\s*\\penalty\s*\d+\s*\}//g;
 
   # We do not strip %\n, thus:
-  s/\\kbd\{\n\s*/\\kbd{/g;
+  s/\\kbd{\n\s*/\\kbd{/g;
   s/\$\\bf(\b|(?=[\d_]))\s*([^\$]+)\$/\$$tr{startbcode}$1$tr{endbcode}\$/g;
   s/\$\s*\\,\s*\$//g;			# Do not make into $$
   s/\$/$tr{dollar}/g;		        # math mode
@@ -716,10 +713,10 @@ sub basic_subst
   s/\\TeX\{\}/TeX/g;
   s/\\TeX(\W)/TeX$1/g;
   s/ *\\circ\b */ o /g;
-  s/\\d?frac\{\s*((?:[^{}]|\{[^{}]*\})*)\}\{\s*((?:[^{}]|\{[^{}]*\})*)\}/($1)\/($2)/g;
+  s/\\d?frac{\s*((?:[^{}]|\{[^{}]*\})*)}{\s*((?:[^{}]|\{[^{}]*\})*)}/($1)\/($2)/g;
   s(\\d?frac\s*(\d)\s*(\d))(($1/$2))g;
-  s[\{\s*(\w)\s*\\over(?![a-zA-Z])\s*(\w)\s*\}]{($1/$2)}g;
-  s[\{\s*((?:[^{}]|\{[^{}]*\})*)\\over(?![a-zA-Z])\s*((?:[^{}]|\{[^{}]*\})*)\}][($1)/($2)]g;
+  s[{\s*(\w)\s*\\over(?![a-zA-Z])\s*(\w)\s*}]{($1/$2)}g;
+  s[{\s*((?:[^{}]|\{[^{}]*\})*)\\over(?![a-zA-Z])\s*((?:[^{}]|\{[^{}]*\})*)}][($1)/($2)]g;
 
   # \def\synt#1#2{\syn{#1}{\tt #2}}
   # \def\syn#1#2{\synx{#1}{#2}{#1}}
@@ -825,7 +822,7 @@ sub basic_subst
 
   s/\\var\{([^\}]*)\}/$tr{startit}$1$tr{endit}/g;
   s/\\fl(?![a-zA-Z])/$tr{startit}flag$tr{endit}/g;
-  s/\\b\{([^}]*)\}/$tr{startcode}\\$1$tr{endcode}/g;
+  s/\\b{([^}]*)}/$tr{startcode}\\$1$tr{endcode}/g;
   s/\\kbdsidx/\\sidx/g;
   s/\\sidx\{[^\}]*\}//g unless $to_pod;
   s/\\[a-zA-Z]*idx\{([^\}]*)\}/$1/g unless $to_pod;
@@ -1033,7 +1030,7 @@ sub TeXprint_topod {
 # s/\\(?:key|li)\s*{(.*)}\s*{}[ \t]*\n/\n\n=back\n\n$1\n\n=over\n\n/mgs;
 # s/\\(key|var)(?![a-zA-Z])\s*{(\w+)}/C<$2>/mg;
   s/\\var\s*{\Q$tr{startindex}\E(\w+)\Q$tr{endindex}\E(\w+)}/$tr{startindex}$1$tr{endindex}$tr{startcode}$2$tr{endcode}/mgo;
-  s/\\var\s*\{f\{\}lag\}/$tr{startcode}flag$tr{endcode}/mg;
+  s/\\var\s*{f{}lag}/$tr{startcode}flag$tr{endcode}/mg;
 
   s/\\metax(?![a-zA-Z])\s*{(.*)}\s*{\s*(\w+)(?=C\<)(.*)}[ \t]*\n/\n\n=item C<L<$2>$3>\n\n$1\n\n/mg;
   s/\\metax(?![a-zA-Z])\s*{(.*)}\s*{(.*)}[ \t]*\n/\n\n=item C<$2>\n\n$1\n\n/mg;

@@ -52,6 +52,20 @@ Setting up Math::Pari with Perl $] on $^O version $Config{osvers};
    ld=$Config{ld}, ldflags='$Config{ldflags}'.
 EOP
 
+if ($^O eq 'solaris' and $Config{cc} eq 'gcc'
+    and (    $Config{optimize}   =~ s/(?<!\S)(-xarch=386|-xildoff)(?!\S)//g
+          or $Config{cccdlflags} =~ s/(?<!\S)-KPIC(?!\S)/-fPIC/ )) {
+  # Vendor's Perl has major problems with building extensions; try to fix this
+  # One way is to use perlgcc; but it does not work with 5.8.4
+  # See http://prefetch.net/blog/index.php/2006/07/29/building-perl-modules-for-solaris/
+  print <<EOP;
+
+... Broken config of gcc-on-Solaris detected!  I would try to work around this.
+... Reset: cccdlflags --> '$Config{cccdlflags}',   optimize -> '$Config{optimize}'.
+
+EOP
+}
+
 if ($common::parilib) {
   $pari_version = '2001007';	# XXXX How to get a correct one?
   $define = '-DNO_HIGHLEVEL_PARI';
