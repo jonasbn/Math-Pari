@@ -920,3 +920,6 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
   Include patches diff_add_gnuplotNeeded diff_add_gnuplotAdd restoring this remove functionality (and diff_add_gnuplotAll for completeness).
   Auto-apply these patches starting with 2.2.13.
   Update build time messages to reflect the status of plotting.
+
+2.0305_010810
+  Change the default for $ok23 to 1.
