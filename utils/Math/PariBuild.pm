@@ -192,7 +192,7 @@ sub ll_ftp () {	# All Perl download failures I saw are on Linux and BSD.
   open OF, '> ftp-cmd' or die "Can't open `ftp-cmd' for write: $!";
   print OF <<'EOF';		# XXXX Hardwired version!
 user anonymous auto-download-Math-Pari@cpan.org
-cd /pub/pari/unix/
+cd /pub/pari/
 dir
 cd OLD/2.1
 dir
@@ -253,7 +253,7 @@ sub finish_download_pari ($$$$;$) {
   my($base_url, $dir, $_archive, $ftp, $ua) = (shift, shift, shift, shift, shift);
   my %archive = %$_archive;
   my ($type, %have, %types, $best, %latest_version, %latest_file);
-  
+
   sub fmt_version {sprintf "%03d%03d%03d", split /\./, shift}
 
   for $type (qw(alpha beta golden)) {
@@ -309,7 +309,7 @@ sub finish_download_pari ($$$$;$) {
 sub download_pari {
   my ($srcfile, $force) = (shift, shift);
   my $host = 'megrez.math.u-bordeaux.fr';
-  my $dir  = '/pub/pari/unix/';
+  my $dir  = '/pub/pari/';
   my($ftp, $ua, $base_url);
 
   print "Did not find GP/PARI build directory around.\n" unless defined $srcfile;
@@ -374,13 +374,13 @@ EOP
       my $ans = <STDIN>;
       if ($ans !~ /y/i) {
         if ($ans !~ /[^\n\r]/ and not $ENV{PERL_MATHPARI_TRUST_MANUAL}
-	    and (defined $ENV{PERL5_CPAN_IS_RUNNING} 
+	    and (defined $ENV{PERL5_CPAN_IS_RUNNING}
         	 or ($ENV{PERL_EXTUTILS_AUTOINSTALL}||0) =~ /\bdefaultdeps\b/) ) {
           print <<'EOP';
 
 Hmm, did not you read the prompt?
 
-Anyway, since $ENV{PERL5_CPAN_IS_RUNNING} is set 
+Anyway, since $ENV{PERL5_CPAN_IS_RUNNING} is set
   (or $ENV{PERL_EXTUTILS_AUTOINSTALL} contains defaultdeps),
 I assume unattended build, and consider NO ANSWER as agreement...
      (If this is not what you wanted, set PERL_MATHPARI_TRUST_MANUAL to TRUE.)
@@ -463,7 +463,7 @@ EOP
       push @url, map { (my $in = $_) =~ s(^ftp://)(http://); $in } @url;
       while (not $c) {
         $base_url = shift @url;
-	print "Not in this directory, trying `$base_url'...\n" if $do++;
+	print "Attempt: $do - Not in this directory, trying `$base_url'...\n" if $do++;
 	$ua = LWP::UserAgent->new;
 	$ua->env_proxy;
 	my $req = HTTP::Request->new(GET => $base_url);
@@ -547,7 +547,7 @@ sub patches_for ($) {
 			      'patches/diff_2.1.7_restart'],
 		 '2.3.5' =>  [
 			($^O =~ /^MSWin32\b/ ? 'patches/diff_2.3.5_mingw-w64' : ()),
-			      'patches/diff_2.3.5_stderr_clobber'], 
+			      'patches/diff_2.3.5_stderr_clobber'],
 		);
   print "Looking for patches for $v...\n";
   my @p = $patches{$v} ? @{$patches{$v}} : ();
