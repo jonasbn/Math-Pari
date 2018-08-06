@@ -994,7 +994,7 @@ sub _shiftr {
 $initmem ||= 4000000;		# How much memory for the stack
 $initprimes ||= 500000;		# Calculate primes up to this number
 
-$VERSION = '2.030500';
+$VERSION = '2.030501';
 
 my $true = 1;
 # Propagate sv_true, sv_false to SvIOK:
@@ -1167,7 +1167,7 @@ sub import {
       $tag = -1, @pre = (@EXPORT_OK,@EXPORT) if ($tag eq 'all');
       $tag = -1 if ($tag eq 'PARI');
       $tag = $sections{$tag} if $tag !~ /^-?\d+$/ and exists $sections{$tag};
-      push @pre, 'link_gnuplot', 'set_plot_fh', 'plot_outfile_set' if $tag eq 10;
+      push @pre, 'link_gnuplot', 'set_plot_fh', 'plot_outfile_set' if $tag eq $sections{graphic};
       if ($tag =~ /^prec=(\d+)$/) {
 	setprecision($1);
 	();

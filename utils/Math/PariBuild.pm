@@ -567,7 +567,7 @@ sub patches_for ($) {
   push @p, 'patches/diff_pari-2.1.3-ix86-divl'
     if $v le '2.1.3' or $v ge '2.2' and $v le '2.2.2';
   push @p, qw(	patches/diff_add_gnuplotNeeded
-		patches/diff_add_gnuplotAdd ) if $v ge '2.2.13';
+		patches/diff_add_gnuplotAdd ) if $v =~ /^2\.3\b/; # ge '2.2.13';
   @p;
 }
 
@@ -905,6 +905,16 @@ EOP
 #define PARI_VERSION_CODE	$vvv
 #define PARI_VERSION(a,b,c)	(((a) << 16) + ((b) << 8) + (c))
 #define PARI_VERSION_SHIFT	8
+
+EOP
+
+  my($V1,$V2,$V3) = $version =~ /(\d+?(?=\d{6}$))0*(\d+?(?=\d{3}$))0*(\d+)$/ or die "Unexpected format of version=$version";
+  my $rel = ($V2 & 1) ? 'released' : 'experimental';
+  my $bits = $bits64 ? 64 : 32;
+  print F <<EOP if $version >= 2004000;
+#define PARIVERSION \"GP/PARI CALCULATOR Version $V1.$V2.$V3 ($rel) configured by Math::Pari\"
+#define PARIINFO \"PerlArch=$^O ($arch kernel); $bits-bit version\"
+#define PARI_VCSVERSION \"\"
 
 EOP
 

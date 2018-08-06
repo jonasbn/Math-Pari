@@ -14,6 +14,8 @@ libPARI/gphelp-ini
 libPARI/extract_codes.pl
 libPARI/expected_codes
 libPARI/codes_2014
+libPARI/pre-noinline.h
+libPARI/post-noinline.h
 patches/diff_2.1.2_gccism
 patches/diff_2.1.3_interface
 patches/diff_2.1.4_interface

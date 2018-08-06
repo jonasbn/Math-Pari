@@ -72,13 +72,13 @@ if ($pari_version >= 2003000) {
   $mpinlh = '';
 }
 
-
+(my $ARCH = $^O) =~ s/^MSWin32$/mingw/;
 my @cfiles =			# Remaining C files
   grep !m(/ ( plot (?!port|gnuplot)
 	    | ix86 | version | mpin | dummy
 	    | gp_(rl|init) | kerntest | whatnow | gp\. )
 	 )x,	<$main_paridir/src/*/*.c>, # kernel C files deeper in the tree
-		<$main_paridir/src/systems/$^O/*.c>;
+		<$main_paridir/src/systems/$ARCH/*.c>;
 push @cfiles, "$main_paridir/src/graph/plotnull.c"
   unless -f "$main_paridir/src/graph/plotgnuplot.c";
 my @cat_cfiles =			# Remaining kernel C files
@@ -226,7 +226,7 @@ WriteMakefile(
     C		=> \@cfiles,
     SKIP	=> [qw( distclean test dist makeaperl xs_o static)],
     clean	=> {FILES =>
-		    'libPARI$(LIB_EXT) pariinl.h kernel1.s kernel2.s paricfg.h mp.c kernel1.c'},
+		    'libPARI$(LIB_EXT) pariinl.h kernel1.s kernel2.s paricfg.h mp.c kernel1.c mpinl.h parilvl0.h parilvl1.h '},
 );
 
 # Create preprocessed copies of assembler files (GNU as does not run cpp);
@@ -248,6 +248,39 @@ kernel2.s: $kernel{file2}
 	\$(CPP) -I . \$(INC) -I $kernel{dir1} \$(DEFINE) \$(ASSCPPDEFINE) $kernel{file2} | perl -ne "s/%\\s+/%/g; print unless /^\\s*#/" > \$@
 
 EOC
+
+  my @inline = "$main_paridir/src/kernel/$asmarch/asm0.h";
+  push @inline, "$main_paridir/src/kernel/sparcv8_micro/asm0-common.h" if $asmarch =~ /^sparcv8_(super|micro)$/;	# inspect MakeLVL0.SH in subdirectories
+  my (@no_asm, @do_asm);
+  for my $fn (@inline) {
+    open my $f, '<', $fn or die "Cannot open $fn for read: $!";
+    while (<$f>) {
+      next unless /^(NO)?ASM\s+(.*)/;
+      my $arr = $1 ? \@no_asm : \@do_asm;
+      push @$arr, map "$main_paridir/src/kernel/none/$_.h", split /\s+/, $2;
+    }
+  }
+  for my $list (\@inline, \@no_asm, \@do_asm) {
+    s(^\Q$main_paridir/\E)(\$(PARI_DIR)/) for @$list;
+  }
+  my $create_inl250 = '';
+  my $d_tune = (-r './tune.h' ? '.' : '$(PARI_DIR)/src/kernel/none');
+  $create_inl250 = <<EOC if $pari_version >= 2004000;	# XXX needed with 2005000; when did it appear???
+L0MODS=@inline @no_asm @do_asm
+
+parilvl0.h: \$(L0MODS)
+	\$(PERL) -pe1 pre-noinline.h @do_asm post-noinline.h @inline @no_asm > \$\@
+
+L1OBJS=\$(PARI_DIR)/src/kernel/none/int.h \$(PARI_DIR)/src/kernel/none/level1.h
+DIR_TUNE=$d_tune
+
+parilvl1.h: \$(L1OBJS) \$(DIR_TUNE)/tune.h
+	\$(PERL) -lpe0 \$(DIR_TUNE)/tune.h \$(L1OBJS) > \$\@
+
+mpinl.h: parilvl1.h parilvl0.h
+	\$(PERL) -lpe0 parilvl0.h parilvl1.h > \$\@
+
+EOC
   my $create_mp = '';
   if ($pari_version >= 2002005) {
     my $mp_pre = $mp;
@@ -255,6 +288,7 @@ EOC
     my $kern = "$kernel_dir/none";
     my @dep			# Copied from src/kernel/none/MakeLVL1.SH 2.2.10
       = "$kern/mp.c $kern/cmp.c $kern/gcdll.c $kern/ratlift.c $kern/gcd.c $kern/invmod.c $kern/mp_indep.c $kern/add.c";
+    push @dep, "$kern/gcdext.c" if $pari_version > 2004000;	# When did it appear?
     $create_mp = <<EOS;
 mp.c: @dep
 	\$(PERL) -pe1 @dep > \$@
@@ -268,6 +302,8 @@ EOS
 	\$(PERL) -wle "print q(#endif)"		  >> \$@
 EOI
   }
+  my $deps_h250 = ($pari_version > 2004000 && 'mpinl.h');	# Actually, this is definitely needed in 2.5.0.  Do not know when this appeared
+  my $deps_h = "pariinl.h paricfg.h $deps_h250";
   return '
 all :: libPARI$(LIB_EXT)
 
@@ -302,23 +338,23 @@ $create_mp
 pariinl.h: @$inlines_cond @$inlines
 $prepend_inl	\$(PERL) -pe1 @$inlines			  >> \$@
 
-$converted
+$converted$create_inl250
 
-mp\$(OBJ_EXT): $mp pariinl.h
+mp\$(OBJ_EXT): $mp pariinl.h $deps_h250
 	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) \$(MY_CC_PRE_TARGET)\$@ $mp
 
-kernel\$(OBJ_EXT): $kernel{converted1} pariinl.h
+kernel\$(OBJ_EXT): $kernel{converted1} pariinl.h $deps_h250
 	\$(ASSCMD) \$(ASSDEFINE) \$(MY_CC_PRE_TARGET)\$@ $kernel{converted1}
 
-kernel2\$(OBJ_EXT): $kernel{converted2} pariinl.h
+kernel2\$(OBJ_EXT): $kernel{converted2} pariinl.h $deps_h250
 	\$(ASSCMD) \$(ASSDEFINE) \$(MY_CC_PRE_TARGET)\$@ $kernel{converted2}
 
-mpinl\$(OBJ_EXT): $mpinl $mpinlh pariinl.h
+mpinl\$(OBJ_EXT): $mpinl $mpinlh pariinl.h $deps_h250
 	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) \$(MY_CC_PRE_TARGET)\$@ $mpinl
 
 } .
     join "\n", map { <<EOF } sort keys %cfiles;
-$_\$(OBJ_EXT): $cfiles{$_} pariinl.h paricfg.h
+$_\$(OBJ_EXT): $cfiles{$_} $deps_h
 	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) \$(MY_CC_PRE_TARGET)\$@ $cfiles{$_}
 EOF
 }

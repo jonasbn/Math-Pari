@@ -19,7 +19,7 @@ unless (-t STDOUT) {		# Better reports if run with redirections
 
 chmod 0400, 'typemap' if $^O =~ /cygwin/ and -f 'typemap' and not -r 'typemap';	# bug in some installations of cygwin???
 
-my($ok23, $force_download, $force_patch, $parilib, $pariincludes, $parisrc, $paridir, $pari_version) = 0;
+my($ok23, $force_download, $force_patch, $parilib, $pariincludes, $parisrc, $paridir, $pari_version) = 1;
 
 grep {/^machine=(.*)$/i		 and $common::machine = $1}  @ARGV;
 grep {/^configure$/i		 and $common::do_configure = 1}	     @ARGV;
@@ -256,7 +256,8 @@ if (not $common::patches_run or @common::patches_fail) {
   my @patches_needed = patches_for($pari_version);
   my $msg = $common::patches_run ? "failed when applied" : "were not applied";
   push @common::patches_fail, @patches_needed unless $common::patches_run;
-  warn "\nThe following patches were judged to be beneficial, but $msg:\n\t@common::patches_fail\n";
+  warn "\nThe following patches were judged to be beneficial, but $msg:\n\t@common::patches_fail (out of @patches_needed)\n"
+    if @common::patches_fail;
 }
 
 
