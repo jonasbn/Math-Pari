@@ -33,6 +33,7 @@ require Exporter;
 	     ep_in_version
 	     code_C_translator
 	     build_funclists
+	     pari_formatted_version_from_includes
 	    );
 
 use strict;
@@ -117,8 +118,9 @@ my $latmus = 'src/test/in/nfields';
 sub filter_versions_too_new {
   my $force = shift;
   my @dirs = grep !m((?:^|[\\/])pari-(?:$common::skip_versions)), @_;
-  print "Filtered out versions too new...\n" if @dirs != @_;
+  print "Filtered out versions too new... <@dirs> out of <@_>\n" if @dirs != @_;
   return @dirs if $force or @dirs;
+  print "Nothing remained, so I ignore the filter...\n" if @_;
   return @_;			# Not found, not forced
 }
 
@@ -126,7 +128,7 @@ sub find_pari_dir {
   my ($dir, @dirs, @gooddirs);
   # Try to find alongside
   for $dir ('.', '..', '../..', '../../..') {
-    @dirs = filter_versions_too_new 0, <$dir/pari-[234].*>;
+    @dirs = filter_versions_too_new 0, grep -d, <$dir/pari-[234].*>;
     @dirs = "$dir/pari" if not @dirs and -d "$dir/pari";
     @dirs = grep -e "$_/$latmus", @dirs;
     last if @dirs;
@@ -167,8 +169,8 @@ directory of the current directory.
    There is no need to extract the archive, or build GP/PARI; but if you
    have it extracted [and patched, if needed], you may specify
        paridir=PATH_TO_DIST_DIR
-   option to Makefile.PL instead of `pari_tgz'.  However, in this case
-   the files WON'T be auto-patched.
+   option to Makefile.PL instead of `pari_tgz'.  However, in this case the
+   files WON'T be auto-patched (unless it is in a subdir, or force_patching).
 
    As a last-resort solution, there is also a possibility to use an already
    compiled PARI library.  See the documentation in README and INSTALL files.]
@@ -192,7 +194,7 @@ sub ll_ftp () {	# All Perl download failures I saw are on Linux and BSD.
   open OF, '> ftp-cmd' or die "Can't open `ftp-cmd' for write: $!";
   print OF <<'EOF';		# XXXX Hardwired version!
 user anonymous auto-download-Math-Pari@cpan.org
-cd /pub/pari/
+cd /pub/pari/unix/
 dir
 cd OLD/2.1
 dir
@@ -249,12 +251,22 @@ sub extract_pari_archive ($) {
     return $dir;
 }
 
+sub fmt_version {sprintf "%03d%03d%03d", split /\./, shift}
+
+sub pari_formatted_version_from_includes($) {	# Unsupported; to enable parilib option; based on
+    my $prefix = shift;			#  http://cvsweb.netbsd.org/bsdweb.cgi/~checkout~/pkgsrc/math/p5-Math-Pari/patches/patch-aa
+    open my $fh, "<", "$prefix/pari/paricfg.h" or die $!;
+    while( my $line = <$fh> ) {
+       next unless $line =~ m/^#define\s+PARIVERSION.*(\d+\.\d+\.\d+)/;
+       return fmt_version $1;
+    }
+}
+
 sub finish_download_pari ($$$$;$) {
   my($base_url, $dir, $_archive, $ftp, $ua) = (shift, shift, shift, shift, shift);
   my %archive = %$_archive;
   my ($type, %have, %types, $best, %latest_version, %latest_file);
-
-  sub fmt_version {sprintf "%03d%03d%03d", split /\./, shift}
+  
 
   for $type (qw(alpha beta golden)) {
     if ($archive{$type}) {
@@ -315,13 +327,13 @@ sub download_pari {
   print "Did not find GP/PARI build directory around.\n" unless defined $srcfile;
 
   my @match = ( '((?:.*\/)?pari\W*', '(\d+\.\d+\.\d+).*\.t(?:ar\.)?gz)$' );
-  my $match1 = "$match[0]$match[1]";
-  my $match  = "$match[0](?!$common::skip_versions)$match[1]";
+  my $match_all = "$match[0]$match[1]";
+  my $match     = "$match[0](?!$common::skip_versions)$match[1]";
 
   my %archive;
   my $match_pari_archive = sub {
     my ($file, $ok23) = (shift, shift);
-    return unless $ok23 ? $file =~ /$match1/o : $file =~ /$match/o;
+    return unless $ok23 ? $file =~ /$match_all/o : $file =~ /$match/o;
     $file = $1;
     my $version = $2;
     if ($file =~ /alpha/) {
@@ -374,13 +386,13 @@ EOP
       my $ans = <STDIN>;
       if ($ans !~ /y/i) {
         if ($ans !~ /[^\n\r]/ and not $ENV{PERL_MATHPARI_TRUST_MANUAL}
-	    and (defined $ENV{PERL5_CPAN_IS_RUNNING}
+	    and (defined $ENV{PERL5_CPAN_IS_RUNNING} 
         	 or ($ENV{PERL_EXTUTILS_AUTOINSTALL}||0) =~ /\bdefaultdeps\b/) ) {
           print <<'EOP';
 
 Hmm, did not you read the prompt?
 
-Anyway, since $ENV{PERL5_CPAN_IS_RUNNING} is set
+Anyway, since $ENV{PERL5_CPAN_IS_RUNNING} is set 
   (or $ENV{PERL_EXTUTILS_AUTOINSTALL} contains defaultdeps),
 I assume unattended build, and consider NO ANSWER as agreement...
      (If this is not what you wanted, set PERL_MATHPARI_TRUST_MANUAL to TRUE.)
@@ -433,7 +445,8 @@ EOP
 	$ftp->binary() or die "Cannot switch to binary (",$ftp->message(),"): $!";
 	my @lst = $ftp->ls();
 	@lst or ($ftp->pasv() and @lst = $ftp->ls()) or die "Cannot list (",$ftp->message(),"): $!";
-	#print "list = `@lst'\n";
+	# print "list = `@lst'\n";
+	# print "skip = /PREFIX($common::skip_versions)/\n";
 
 	%archive = ();
 	for my $file (@lst) {
@@ -463,7 +476,7 @@ EOP
       push @url, map { (my $in = $_) =~ s(^ftp://)(http://); $in } @url;
       while (not $c) {
         $base_url = shift @url;
-	print "Attempt: $do - Not in this directory, trying `$base_url'...\n" if $do++;
+	print "Not in this directory, trying `$base_url'...\n" if $do++;
 	$ua = LWP::UserAgent->new;
 	$ua->env_proxy;
 	my $req = HTTP::Request->new(GET => $base_url);
@@ -547,12 +560,14 @@ sub patches_for ($) {
 			      'patches/diff_2.1.7_restart'],
 		 '2.3.5' =>  [
 			($^O =~ /^MSWin32\b/ ? 'patches/diff_2.3.5_mingw-w64' : ()),
-			      'patches/diff_2.3.5_stderr_clobber'],
+			      'patches/diff_2.3.5_stderr_clobber'], 
 		);
   print "Looking for patches for $v...\n";
   my @p = $patches{$v} ? @{$patches{$v}} : ();
   push @p, 'patches/diff_pari-2.1.3-ix86-divl'
     if $v le '2.1.3' or $v ge '2.2' and $v le '2.2.2';
+  push @p, qw(	patches/diff_add_gnuplotNeeded
+		patches/diff_add_gnuplotAdd ) if $v ge '2.2.13';
   @p;
 }
 
@@ -652,7 +667,7 @@ sub make_pod {
       chmod 0666, $targ;
       unlink $targ;
     }
-    (system "$^X libPARI/gphelp $how $paridir/doc/usersch3.tex > tmp_pod "
+    (system "$^X -I. libPARI/gphelp $how $paridir/doc/usersch3.tex > tmp_pod "
       and (warn("Errors when converting documentation: $?"), 0))
       or rename 'tmp_pod', $targ;
   }
@@ -1397,18 +1412,18 @@ sub build_funclists_ourselves ($) {
     or die "Can't chdir to `$pari_dir/src/desc'";
   unless (-f 'pari.desc') {
     my $t = 'tmp-pari.desc';
-    #warn "Running `$^X merge_822 ../functions/*/* > $t'...\n";
-    if (system "$^X merge_822 ../functions/*/* > $t") {		# On AIX, this exceeds max command line length
+    #warn "Running `$^X -I. merge_822 ../functions/*/* > $t'...\n";
+    if (system "$^X -I. merge_822 ../functions/*/* > $t") {		# On AIX, this exceeds max command line length
       unlink ($t);
       warn <<EOW;
-Can't run `$^X merge_822 ../functions/*/* > $t'
+Can't run `$^X -I. merge_822 ../functions/*/* > $t'
 Running merge_822 separately in subdirectories...
 EOW
       foreach (glob ("../functions/*")) {
          next unless (-d $_);
          my @l = glob "$_/*" or next;
-         system "$^X merge_822 @l >> $t"
-           and die "Can't run `$^X merge_822 @l >> $t'";
+         system "$^X -I. merge_822 @l >> $t"
+           and die "Can't run `$^X -I. merge_822 @l >> $t'";
       }
     }
     rename $t, 'pari.desc' or die "rename failed: $t => 'pari.desc'";
@@ -1435,9 +1450,9 @@ EOW
     next if -r "../$outfile";
     my $append = '>';
     for my $step (@{$recipies{$outfile}}) {
-      #warn "Running `$^X @$step pari.desc $append ../$outfile-tmp'...\n";
-      system "$^X @$step pari.desc $append ../$outfile-tmp"
-	and die "Can't run `$^X @$step pari.desc $append ../$outfile-tmp'";
+      #warn "Running `$^X -I. @$step pari.desc $append ../$outfile-tmp'...\n";
+      system "$^X -I. @$step pari.desc $append ../$outfile-tmp"
+	and die "Can't run `$^X -I. @$step pari.desc $append ../$outfile-tmp'";
       $append = '>>';
     }
     rename "../$outfile-tmp", "../$outfile"

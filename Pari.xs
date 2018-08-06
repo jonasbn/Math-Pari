@@ -3,6 +3,10 @@
 #  include <windows.h>
 #endif
 
+#ifdef USE_STANDALONE_PARILIB
+#  include <pari/pari.h>
+#  include <pari/paripriv.h>
+#else
 #  include <pari.h>
 #  include <graph/rect.h>
 #  include <language/anal.h>
@@ -12,6 +16,7 @@
 #endif
 
 #  include <gp/gp.h>			/* init_opts */
+#endif /* !defined USE_STANDALONE_PARILIB */
 
 /* On some systems /usr/include/sys/dl.h attempts to declare
    ladd which pari.h already defined with a different meaning.
@@ -1736,23 +1741,29 @@ typedef void (*TSET_FP)(char *s);
 #  define have_highlevel()	1
 #endif
 
-#ifdef NO_GRAPHICS_PARI
-#  define have_graphics()	0
-#  define set_gnuterm(a,b,c) croak("This build of Math::Pari has no plotting support")
-#  define int_set_term_ftable(a) croak("This build of Math::Pari has no plotting support")
+#ifdef NO_GNUPLOT_PARI
+#  define have_graphics()	-1
+#  define set_gnuterm(a,b,c) croak("This build of Math::Pari has no Gnuplot plotting support")
+#  define int_set_term_ftable(a) croak("This build of Math::Pari has no Gnuplot plotting support")
 #else
-#  define have_graphics()	1
-#  if PARI_VERSION_EXP < 2000013
-#    define set_gnuterm(a,b,c) \
-	set_term_funcp((FUNC_PTR)(a),(struct termentry *)(b))
-#  else	/* !( PARI_VERSION_EXP < 2000013 ) */ 
-#    define set_gnuterm(a,b,c) \
-	set_term_funcp3((FUNC_PTR)(INT2PTR(void*, a)), INT2PTR(struct termentry *, b), INT2PTR(TSET_FP,c))
+#  ifdef NO_GRAPHICS_PARI
+#    define have_graphics()	0
+#    define set_gnuterm(a,b,c) croak("This build of Math::Pari has no plotting support")
+#    define int_set_term_ftable(a) croak("This build of Math::Pari has no plotting support")
+#  else
+#    define have_graphics()	1
+#    if PARI_VERSION_EXP < 2000013
+#      define set_gnuterm(a,b,c) \
+	  set_term_funcp((FUNC_PTR)(a),(struct termentry *)(b))
+#    else	/* !( PARI_VERSION_EXP < 2000013 ) */ 
+#      define set_gnuterm(a,b,c) \
+	  set_term_funcp3((FUNC_PTR)(INT2PTR(void*, a)), INT2PTR(struct termentry *, b), INT2PTR(TSET_FP,c))
 extern void set_term_funcp3(FUNC_PTR change_p, void *term_p, TSET_FP tchange);
 
-#  endif	/* PARI_VERSION_EXP < 2000013 */
+#    endif	/* PARI_VERSION_EXP < 2000013 */
 
-#  define int_set_term_ftable(a) (v_set_term_ftable(INT2PTR(void*,a)))
+#    define int_set_term_ftable(a) (v_set_term_ftable(INT2PTR(void*,a)))
+#  endif
 #endif
 
 extern  void v_set_term_ftable(void *a);

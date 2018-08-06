@@ -708,7 +708,7 @@ sub process_test {
 	  and $not_yet_defined{$1}) {
 	print "# in='$in'\nok $current_num # Skipped: `$1' is known to be undefined\n";
       } elsif ($@ =~ /high resolution graphics disabled/
-	       and not Math::Pari::have_graphics()) {
+	       and 0 >= Math::Pari::have_graphics()) {
 	print "# in='$in'\nok $current_num # Skipped: graphic is disabled in this build\n";
       } elsif ($@ =~ /gnuplot-like plotting environment not loaded yet/
 	       and $skip_gnuplot) {

@@ -89,9 +89,10 @@ my @cat_cfiles =			# Remaining kernel C files
 map s/^\Q$main_paridir/\$(PARI_DIR)/, @cfiles;
 my %cfiles = map {m,/([^/.]*)\.c$,i; ($1,$_)} @cfiles; # By basename
 
+my $gcflags = $cfiles{plotgnuplot} ? '-DPLOT_IS_TUNABLE' : '';	# for versions 2.3.*
+my $mycflags;
 my $noexp2 = '';		# Not used any more - but would be nice!
 my $libs="-lm";
-my $mycflags = '';
 
 if ($Config{osname} eq 'solaris') {
 #  @sc_dirs = '/opt/SUNWspro/lib' if -d '/opt/SUNWspro/lib';
@@ -219,7 +220,7 @@ WriteMakefile(
 		    USED_ASMARCH  => $asmarch,
 		    CFG_CCCDLFLAGS => $Config{cccdlflags},
 		   },
-    DEFINE	=> $mycflags,
+    DEFINE	=> "$gcflags$mycflags",
     INC		=> $extra_inc . ' -I $(PARI_DIR)/src/headers -I $(PARI_DIR)/src/graph -I .'
 			. $inc,
     C		=> \@cfiles,

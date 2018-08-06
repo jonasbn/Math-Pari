@@ -1,4 +1,5 @@
 # $Id: Makefile.PL,v 1.1 1995/01/23 04:46:12 ilya Exp $
+use strict;
 use ExtUtils::MakeMaker;
 use Config '%Config';
 
@@ -18,74 +19,85 @@ unless (-t STDOUT) {		# Better reports if run with redirections
 
 chmod 0400, 'typemap' if $^O =~ /cygwin/ and -f 'typemap' and not -r 'typemap';	# bug in some installations of cygwin???
 
-my $ok23 = 0;
+my($ok23, $force_download, $force_patch, $parilib, $pariincludes, $parisrc, $paridir, $pari_version) = 0;
+
 grep {/^machine=(.*)$/i		 and $common::machine = $1}  @ARGV;
 grep {/^configure$/i		 and $common::do_configure = 1}	     @ARGV;
 grep {/^paridir=(.*?)[\/\\]?$/i	 and $paridir = $1}	     @ARGV;
-grep {/^pari_tgz=(.*?)[\/\\]?$/i	 and $parisrc = $1}	     @ARGV;
+grep {/^pari_tgz=(.*?)[\/\\]?$/i and $parisrc = $1}	     @ARGV;
 grep {/^force_download$/i	 and $force_download = 1}    @ARGV;
-grep {/^parilib=(.*)$/i		 and $common::parilib = $1}  @ARGV;
-grep {/^version23_ok=(.*)$/i	 and $ok23 = $1}  @ARGV;
+grep {/^parilibs=(.*)$/i	 and $parilib = $1}	     @ARGV;
+grep {/^pariincludes=(.*)$/i	 and $pariincludes = $1}     @ARGV;
+grep {/^version23_ok=(.*)$/i	 and $ok23 = $1}	     @ARGV;
+grep {/^force_patch(=\d+)?$/i	 and $force_patch = (defined $1 ? $1 : 1)}  @ARGV;
 
 # The REx should anchored-match versions to skip
 $common::skip_versions = $ok23 ? '2\.(?:[4-9]|\d\d+)\.' : '2\.(?:[3-9]|\d\d+)\.';
 
-@ARGV = grep !/^((machine|paridir|pari_tgz|parilib|version23_ok)=.*|configure|force_download)$/i, @ARGV;
+@ARGV = grep !/^((machine|paridir|pari_tgz|parilibs|pariincludes|version23_ok|force_patch)=.*|configure|force_download)$/i, @ARGV;
 
-$paridir   = find_pari_dir() unless defined $paridir or $parisrc or $force_download;
-($paridir, my @patch_rc) = download_and_patch_pari($parisrc, $force_download)
-  if !$paridir or $force_download;
-my %patchrc = (patchrc => $patch_rc[0]) if @patch_rc;
+my %patchrc;
+
+my($extra_inc, $define, $libs);
+my $os = $Config{osname};
+if ($parilib) {
+  die "One should define `pariincludes' together with 'parilib'" unless defined $pariincludes;
+  $pari_version = pari_formatted_version_from_includes "$pariincludes/include";
+  $define = '-DNO_HIGHLEVEL_PARI -DUSE_STANDALONE_PARILIB';
+  print <<EOP;
+Trying to use existing PARI library (at $parilib)
+     (integer-formatted version $pari_version).
+EOP
+} else {
+  $paridir   = find_pari_dir() unless defined $paridir or $parisrc or $force_download;
+  ($paridir, my @patch_rc) = download_and_patch_pari($parisrc, $force_download)
+    if !$paridir or $force_download;
 
 die <<EOD  unless $paridir;
 Could not find GP/PARI build directory, please run Makefile.PL
 with paridir=/directory option.
 EOD
 
-my $gcc_version
-  = defined($Config{gccversion}) ? ", gccversion=$Config{gccversion}" : "";
-print <<EOP;
-Setting up Math::Pari with Perl $] on $^O version $Config{osvers};
-   cc=$Config{cc}$gcc_version, cccdlflags='$Config{cccdlflags}',
-   ccflags='$Config{ccflags}',
-   optimize='$Config{optimize}',
-   ld=$Config{ld}, ldflags='$Config{ldflags}'.
-EOP
+  if (not $common::patches_run) {
+    if (-f (my $fn = "$paridir/.perl.patches")) {
+      warn "\n\tIt looks like the directory was already patched.\n\tHere is the report from that patching session:\n",
+        do { if (open my $f, '<', $fn) {<$f>}}, "\n";
+    } else {
+      my $force = (defined $force_patch ? $force_patch : ($paridir =~ m(^\./pari)));
+      if ($force) {
+        @patch_rc = patch_pari($paridir);
+      } else {
+        warn "\n\tI won't auto-patch without option force_patch\n"
+      }
+    }
+  }
+  %patchrc = (patchrc => $patch_rc[0]) if @patch_rc;
 
-if ($^O eq 'solaris' and $Config{cc} eq 'gcc'
-    and (    $Config{optimize}   =~ s/(?<!\S)(-xarch=386|-xildoff)(?!\S)//g
-          or $Config{cccdlflags} =~ s/(?<!\S)-KPIC(?!\S)/-fPIC/ )) {
-  # Vendor's Perl has major problems with building extensions; try to fix this
-  # One way is to use perlgcc; but it does not work with 5.8.4
-  # See http://prefetch.net/blog/index.php/2006/07/29/building-perl-modules-for-solaris/
-  print <<EOP;
-
-... Broken config of gcc-on-Solaris detected!  I would try to work around this.
-... Reset: cccdlflags --> '$Config{cccdlflags}',   optimize -> '$Config{optimize}'.
-
-EOP
-}
-
-if ($common::parilib) {
-  $pari_version = '2001007';	# XXXX How to get a correct one?
-  $define = '-DNO_HIGHLEVEL_PARI';
-  print <<EOP;
-Trying to use existing PARI library (at $common::parilib)
-     (FAKE integer-formatted version $pari_version).
-EOP
-} else {
   $define = '';
   $pari_version = pari_formatted_version($paridir);
   print <<EOP;
 Found GP/PARI build directory in $paridir
      (integer-formatted version $pari_version).
 EOP
+  print <<EOP if $pari_version =~ /^20(\d\d)/ and $1 > 3;	# may have specified a particular tgz...
+
+  !!! Math::Pari does not support GP/PARI library versions after 2.3.*.
+  !!!   It looks like you did force this particular version on Makefile.PL.
+  !!!   The build system should not pick up such a version by itself...
+
+EOP
+  print <<EOP if $pari_version =~ /^2003/ and not -f "$paridir/src/graph/plotgnuplot.c";
+
+  ### Math::Pari support of non-PS plotting functions of GP/PARI library
+  ### version 2.3.* requires patching GP/PARI source (I can auto-patch it).
+
+  ### It looks like auto-patching did not happen!
+
+EOP
   print <<EOP if $pari_version =~ /^2003/;
 
-  ### Math::Pari support of GP/PARI library version 2.3.* is not fully
-  ### finished.  For non-PS plotting functions, one must downgrade to 2.1.7.
-
-  ### Moreover, the test t/55_intnum.t takes significant time to complete.
+  ### In version 2.3.* of GP/PARI library, the test t/55_intnum.t takes
+  ###    significant time to complete.
 
 EOP
   print <<EOP if $pari_version =~ /^2001/;
@@ -104,45 +116,66 @@ EOP
   ### Alternatively, give option
   ###           paridir=DIRECTORY-of-extracted-distribution
 
-  ### However, keep in mind: v.2.3.* supports only plotting to PostScript.
+  ### However: v.2.3.* REQUIRES patching for full support of plotting.
+  ###   (And I can auto-patch it!)
 
 EOP
   $common::pari_version = $pari_version;
   $common::main_paridir = $paridir;
   *MY::postamble = \&xMY::postamble;
-}
 
-$os = $Config{osname};
+  my $gcc_version
+    = defined($Config{gccversion}) ? ", gccversion=$Config{gccversion}" : "";
+  print <<EOP;
+Setting up Math::Pari with Perl $] on $^O version $Config{osvers};
+   cc=$Config{cc}$gcc_version, cccdlflags='$Config{cccdlflags}',
+   ccflags='$Config{ccflags}',
+   optimize='$Config{optimize}',
+   ld=$Config{ld}, ldflags='$Config{ldflags}'.
+EOP
 
-$define .= " -DPARI_VERSION_EXP=$pari_version -DDEBUG_PARI";
-$define .= " -DUSE_SLOW_ARRAY_ACCESS -DUSE_SLOW_NARGS_ACCESS" if $] >= 5.009;
-$libs = "-lm";
-$libs .= " $common::parilib" if $common::parilib;
-$noexp2 = '';			# Should be used for generation of paricfg.h
+  if ($^O eq 'solaris' and $Config{cc} eq 'gcc'
+      and (    $Config{optimize}   =~ s/(?<!\S)(-xarch=386|-xildoff)(?!\S)//g
+            or $Config{cccdlflags} =~ s/(?<!\S)-KPIC(?!\S)/-fPIC/ )) {
+    # Vendor's Perl has major problems with building extensions; try to fix this
+    # One way is to use perlgcc; but it does not work with 5.8.4
+    # See http://prefetch.net/blog/index.php/2006/07/29/building-perl-modules-for-solaris/
+  print <<EOP;
 
-if ($os eq "solaris") {
-  # Some older versions needed -lsunmath to import exp2().  This is
-  # probably not needed anymore (though can speed things up).
+... Broken config of gcc-on-Solaris detected!  I would try to work around this.
+... Reset: cccdlflags --> '$Config{cccdlflags}',   optimize -> '$Config{optimize}'.
 
-  # Below -R specifies the path to search for this file when the
-  # program will run, -L the path to search when the program is linked
-#  @sc_dirs = '/opt/SUNWspro/lib' if -d '/opt/SUNWspro/lib';
-#  @sc_dirs = </opt/SUNWspro/SC*/lib> unless @sc_dirs;
-#  if (@sc_dirs) {
-#    $libs .= " -R$sc_dirs[-1] -L$sc_dirs[-1] -lsunmath -lm";
-#  } else {
-#    #warn "Cannot find SUNWspro dirs, needed for -lsunmath, using NOEXP2.\n";
+EOP
+  }
+
+  $define .= " -DPARI_VERSION_EXP=$pari_version -DDEBUG_PARI";
+  $define .= " -DUSE_SLOW_ARRAY_ACCESS -DUSE_SLOW_NARGS_ACCESS" if $] >= 5.009;
+  $libs = "-lm";
+  my $noexp2 = '';			# Should be used for generation of paricfg.h (not used anymore!)
+
+  if ($os eq "solaris") {
+    # Some older versions needed -lsunmath to import exp2().  This is
+    # probably not needed anymore (though can speed things up).
+
+    # Below -R specifies the path to search for this file when the
+    # program will run, -L the path to search when the program is linked
+  #  @sc_dirs = '/opt/SUNWspro/lib' if -d '/opt/SUNWspro/lib';
+  #  @sc_dirs = </opt/SUNWspro/SC*/lib> unless @sc_dirs;
+  #  if (@sc_dirs) {
+  #    $libs .= " -R$sc_dirs[-1] -L$sc_dirs[-1] -lsunmath -lm";
+  #  } else {
+  #    #warn "Cannot find SUNWspro dirs, needed for -lsunmath, using NOEXP2.\n";
+      $noexp2 = 1;
+  #  }
+  } elsif ($os eq "os2") {
     $noexp2 = 1;
-#  }
-} elsif ($os eq "os2") {
-  $noexp2 = 1;
-  $define .= " -DMALLOC_PROCS";
-} elsif ($os eq 'linux') {
-  $noexp2 = 1;
-}
+    $define .= " -DMALLOC_PROCS";
+  } elsif ($os eq 'linux') {
+    $noexp2 = 1;
+  }
 
-my %opts;
-unless ($common::parilib) {
+  my %opts;
+
   build_tests $paridir;		# Convert the test suite
   make_pod 'libPARI.pod', '-to_pod', $paridir; # Now the docs
   make_pod 'libPARI.dumb.pod', '-to_dumb_pod', $paridir;
@@ -162,47 +195,51 @@ unless ($common::parilib) {
       ep_hash_report(%codes, %names, \*STDERR);
     }
   }
+
+  # We want to find the offset of the least significant byte
+  # of SV.flags inside an SV.
+  # It is enough to find the offset of the least significant byte inside a U32.
+  # (Needed for recognizing Perl code supplied to lisseq and lisexpr.)
+
+  my $offset = index($Config{byteorder}, "1");
+  $offset = 3 if $offset > 3;	# SvFLAGS is actually I32
+  $define .= " -DLSB_in_U32=$offset";
+
+  my $longsize = length(eval { pack 'l!', 1 } or pack 'l', 1);
+  my $perl_int_size = $Config{'ivsize'} || $Config{'intsize'}
+          or die "Can't deduce Perl int size";
+
+  $define .= ' -DLONG_SHORTER_THAN_IV' if $perl_int_size > $longsize;
+
+  $define .= ' -Derr=pari_err'; # On linux it can get a wrong dynamic loading
+  $define .= ' -DHAVE_LADD' if $opts{have_ladd};
+  $define .= ' -DGCC_INLINE' if $Config{gccversion} and not $Config{optimize} =~ /-g\b/;
+  $define .= ' -DHAVE_PARIPRIV' if -f "$paridir/src/headers/paripriv.h";
+  $define .= ' -DNO_GRAPHICS_PARI' unless -f "$paridir/src/graph/plotgnuplot.c";	# present before 2.2.13; we can patch it in 
+
+  # XXXX otherwise segfaults trying to install highlevel functions???
+  # XXXX because functions_hash = NULL???
+  # $define .= ' -DNO_HIGHLEVEL_PARI' if $pari_version >= 2003000;
+  # $define .= ' -DNO_GRAPHICS_PARI' if $pari_version >= 2003000;
+
+  # This is done in Makefile in GP/PARI, and in paricfg.h without do_configure
+  $define .= ' -DDL_DFLT_NAME=NULL' if $common::do_configure;
+
+  $extra_inc = extra_includes($paridir);
 }
 
-# We want to find the offset of the least significant byte
-# of SV.flags inside an SV.
-# It is enough to find the offset of the least significant byte inside a U32.
-# (Needed for recognizing Perl code supplied to lisseq and lisexpr.)
-
-$offset = index($Config{byteorder}, "1");
-$offset = 3 if $offset > 3;	# SvFLAGS is actually I32
-$define .= " -DLSB_in_U32=$offset";
-
-my $longsize = length(eval { pack 'l!', 1 } or pack 'l', 1);
-my $perl_int_size = $Config{'ivsize'} || $Config{'intsize'}
-	or die "Can't deduce Perl int size";
-
-$define .= ' -DLONG_SHORTER_THAN_IV' if $perl_int_size > $longsize;
-
-$define .= ' -Derr=pari_err'; # On linux it can get a wrong dynamic loading
-$define .= ' -DHAVE_LADD' if $opts{have_ladd};
-$define .= ' -DGCC_INLINE' if $Config{gccversion} and not $Config{optimize} =~ /-g\b/;
-$define .= ' -DHAVE_PARIPRIV' if -f "$paridir/src/headers/paripriv.h";
-#$define .= ' -DNO_GRAPHICS_PARI' unless -f "$paridir/src/graph/plotgnuplot.c";
-
-# XXXX otherwise segfaults trying to install highlevel functions???
-# XXXX because functions_hash = NULL???
-# $define .= ' -DNO_HIGHLEVEL_PARI' if $pari_version >= 2003000;
-$define .= ' -DNO_GRAPHICS_PARI' if $pari_version >= 2003000;
-
-# This is done in Makefile in GP/PARI, and in paricfg.h without do_configure
-$define .= ' -DDL_DFLT_NAME=NULL' if $common::do_configure;
-
-my $extra_inc = extra_includes($paridir);
 
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile being created.
 &WriteMakefile(
-	       LIBS	     =>  $libs,
-	       INC	     => $extra_inc . ' -I $(PARI_DIR)/src/headers -I $(PARI_DIR)/src -I ./libPARI',
 	       NAME	     => 'Math::Pari',
-	       ($common::parilib ? () :
+	       ($parilib ? (
+		  LIBS	     =>  $parilib,
+		  INC	     =>  "-I $pariincludes/include -I $pariincludes/src",
+		 ) :
 		 (MYEXTLIB   =>  'libPARI/libPARI$(LIB_EXT)')),
+		  LIBS	     =>  $libs,
+		  INC	     =>  $extra_inc . ' -I $(PARI_DIR)/src/headers -I $(PARI_DIR)/src -I ./libPARI',
 	       VERSION_FROM  => 'Pari.pm',
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'Pari.pm', # retrieve abstract from module
@@ -257,7 +294,8 @@ sub MY::const_config
  my $self = shift;
  my $flags = $self->{'CCCDLFLAGS'}; # Tmp var needed with Perl4 !
  $flags =~ s/(-[fK]?\s*)pic\b/${1}PIC/; 
- $flags =~ s/-KPIC/-K PIC/;	# Apparently (was?) needed on Solaris...
+ $flags =~ s/-KPIC/-K PIC/	# Apparently (was?) needed on Solaris... (But see http://gnats.netbsd.org/45271)
+   if $os eq 'solaris' and not ($Config{cc} eq 'gcc' and $Config{gccversion} ge '4.6');	# without "parilib", changed to fPIC earlier
  $self->{'CCCDLFLAGS'} = $flags;
  if ($^O eq 'MSWin32' && $Config{'ccflags'} =~ /-DPERL_OBJECT/)
   {

@@ -897,3 +897,26 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 
 2.01080900
   Repackage as zip
+
+2.010810
+  Now can auto-patch an already present pari src directory.  Controlled by the new options force_patch or force_patch=NUM (default is 1).
+     Default: do if it is our subdirectory.
+  Fix patch/diff_2.3.5_mingw-w64.
+  Take into account a changed name for the download directory for GP/PARI src.
+  A workaround for broken <<do FILE>> behaviour in newer Perls (in ./test_eng/ex.t).
+  Include -I. when we run $^X on GP/PARI's scripts (now . is disabled on newer Perls) during Math::Pari build.
+	(Analysis by Kent Fredric, ticket 120711.)
+  Users could have sneaked in a later version than 2.3.5.  Detect this and warn.
+  Makefile.PL was not using strict.
+  Allow -DUSE_STANDALONE_PARILIB to make Pari.xs use only public interfaces of GP/PARI.
+  Incorporate certain changes to simplify building with a standalone PARI library:
+	-KPIC per http://gnats.netbsd.org/45271 (but it is not changed to -fPIC already???)
+  New unsupported function pari_formatted_version_from_includes($includeDir) from public headers.
+  Change name of option parilib to parilibs.
+  With -DNO_GNUPLOT_PARI, has a chance to compile with native graphics enabled (not tested).
+	(Temporarily?) disable ploth() testing when this is defined.
+  The code to filter out too new versions of Pari directories was reacting on non-directories too.
+  Allow building if the plotting functionality removed in v2.2.13 is restored (not tested).
+  Include patches diff_add_gnuplotNeeded diff_add_gnuplotAdd restoring this remove functionality (and diff_add_gnuplotAll for completeness).
+  Auto-apply these patches starting with 2.2.13.
+  Update build time messages to reflect the status of plotting.
