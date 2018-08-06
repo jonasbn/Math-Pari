@@ -3797,7 +3797,7 @@ void
 memUsage()
 PPCODE:
 #ifdef DEBUG_PARI
-  EXTEND(sp, 3);		/* Got cv + 0, return 4. */
+  EXTEND(sp, 4);		/* Got cv + 0, - but on newer Perls, this does not count.  Return 4. */
   PUSHs(sv_2mortal(newSViv(SVnumtotal)));
   PUSHs(sv_2mortal(newSViv(SVnum)));
   PUSHs(sv_2mortal(newSViv(onStack)));

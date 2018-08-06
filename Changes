@@ -923,3 +923,12 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 
 2.0305_010810
   Change the default for $ok23 to 1.
+
+2.0305_010811
+  memUsage() had wrong count in EXTEND(sp...) (compatible with very old perls???)
+
+2.030500
+  Since it looks like we do not auto-generate highlvl.h, add a patch for it too.
+  New function plot_outfile_set().
+  Deprecate set_plot_fh() with Term::Gnuplot version 0.55 and later.
+  Fix documentation accordingly.

@@ -752,10 +752,9 @@ output terminal by calling plotterm(), as in
 
     use Math::Pari qw(:graphic asin);
 
-    open FH, '>out.tex' or die;
     link_gnuplot();		# automatically loads Term::Gnuplot
-    set_plot_fh(\*FH);
     plotterm('emtex');
+    plot_outfile_set('out.tex');	# better do after plotterm()
     ploth($x, .5, .999, sub {asin $x});
     close FH or die;
 
@@ -939,7 +938,7 @@ require DynaLoader;
 @EXPORT_OK = qw(
   sv2pari sv2parimat pari2iv pari2nv pari2num pari2pv pari2bool loadPari _bool
   listPari pari_print pari_pprint pari_texprint O ifact gdivent gdivround
-  changevalue set_plot_fh link_gnuplot setprecision setseriesprecision
+  changevalue set_plot_fh plot_outfile_set link_gnuplot setprecision setseriesprecision
   setprimelimit allocatemem type_name pari2num_
 );
 
@@ -995,7 +994,7 @@ sub _shiftr {
 $initmem ||= 4000000;		# How much memory for the stack
 $initprimes ||= 500000;		# Calculate primes up to this number
 
-$VERSION = '2.0305_010810';
+$VERSION = '2.030500';
 
 my $true = 1;
 # Propagate sv_true, sv_false to SvIOK:
@@ -1168,7 +1167,7 @@ sub import {
       $tag = -1, @pre = (@EXPORT_OK,@EXPORT) if ($tag eq 'all');
       $tag = -1 if ($tag eq 'PARI');
       $tag = $sections{$tag} if $tag !~ /^-?\d+$/ and exists $sections{$tag};
-      push @pre, 'link_gnuplot', 'set_plot_fh' if $tag eq 10;
+      push @pre, 'link_gnuplot', 'set_plot_fh', 'plot_outfile_set' if $tag eq 10;
       if ($tag =~ /^prec=(\d+)$/) {
 	setprecision($1);
 	();
@@ -1241,7 +1240,7 @@ for $name (keys %converted) {
   if ($name eq 'addhelp' or $name eq 'plotstring') {
     *$name = sub { PARI ( qq($name($_[0],"$_[1]")) ) }
   } else {
-    *$name = sub { local $"=','; PARI("$name(@_)") }
+    *$name = sub { local $"=','; PARI("$name(@_)") }	# "
   }
 }
 
@@ -1278,9 +1277,16 @@ sub link_gnuplot {
     int_set_term_ftable(Term::Gnuplot::get_term_ftable());
 }
 
-sub set_plot_fh {
+sub set_plot_fh($) {
   eval 'use Term::Gnuplot 0.4; 1' or die;
+  die "set_plot_fh() unsupported with $Term::Gnuplot::VERSION >= 0.55.  Use plot_outfile_set(FNAME) instead"
+    if $Term::Gnuplot::VERSION ge '0.55';
   Term::Gnuplot::set_gnuplot_fh(@_);
+}
+
+sub plot_outfile_set($) {
+  eval 'use Term::Gnuplot 0.55; 1' or die;
+  Term::Gnuplot::plot_outfile_set(@_);
 }
 
 PARI_DEBUG_set($ENV{MATHPARI_DEBUG} || 0);
